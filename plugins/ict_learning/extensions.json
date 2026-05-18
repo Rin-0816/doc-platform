@@ -1,0 +1,137 @@
+{
+  "document_metadata": {
+    "table": "ict_learning_metadata",
+    "fields": [
+      {
+        "id": "learning_objectives",
+        "type": "markdown",
+        "storage": "learning_objectives_markdown"
+      },
+      {
+        "id": "prerequisites",
+        "type": "markdown",
+        "storage": "prerequisites_markdown"
+      },
+      {
+        "id": "difficulty",
+        "type": "enum",
+        "values": [
+          "beginner",
+          "intermediate",
+          "advanced"
+        ],
+        "storage": "difficulty"
+      },
+      {
+        "id": "estimated_minutes",
+        "type": "integer",
+        "storage": "estimated_minutes"
+      },
+      {
+        "id": "required_equipment",
+        "type": "string_list",
+        "storage": "ict_learning_required_equipment"
+      },
+      {
+        "id": "required_software",
+        "type": "string_list",
+        "storage": "ict_learning_required_software"
+      },
+      {
+        "id": "supported_platforms",
+        "type": "platform_list",
+        "storage": "ict_learning_supported_platforms"
+      },
+      {
+        "id": "last_verified_on",
+        "type": "date",
+        "storage": "last_verified_on"
+      }
+    ]
+  },
+  "content_types": [
+    {
+      "id": "exercise",
+      "table": "ict_learning_exercises"
+    },
+    {
+      "id": "quiz",
+      "table": "ict_learning_quizzes"
+    },
+    {
+      "id": "troubleshooting",
+      "table": "ict_learning_troubleshooting"
+    }
+  ],
+  "templates": [
+    {
+      "id": "ict_learning_document",
+      "path": "./templates/ict_learning_document.json"
+    }
+  ],
+  "view_panels": [
+    {
+      "id": "ict_learning_summary",
+      "metadata_fields": [
+        "learning_objectives",
+        "prerequisites",
+        "difficulty",
+        "estimated_minutes",
+        "required_equipment",
+        "required_software",
+        "supported_platforms",
+        "last_verified_on"
+      ]
+    }
+  ],
+  "edit_panels": [
+    {
+      "id": "ict_learning_metadata",
+      "metadata_fields": [
+        "learning_objectives",
+        "prerequisites",
+        "difficulty",
+        "estimated_minutes",
+        "required_equipment",
+        "required_software",
+        "supported_platforms",
+        "last_verified_on"
+      ]
+    }
+  ],
+  "validators": [
+    {
+      "field": "estimated_minutes",
+      "rule": "positive_integer"
+    },
+    {
+      "field": "last_verified_on",
+      "rule": "iso_date"
+    },
+    {
+      "field": "required_equipment",
+      "rule": "string_list"
+    },
+    {
+      "field": "required_software",
+      "rule": "string_list"
+    }
+  ],
+  "search_extensions": [
+    {
+      "id": "difficulty",
+      "field": "difficulty",
+      "type": "enum"
+    },
+    {
+      "id": "required_equipment",
+      "field": "required_equipment",
+      "type": "string_list"
+    },
+    {
+      "id": "supported_version",
+      "field": "supported_platforms.version",
+      "type": "string"
+    }
+  ]
+}

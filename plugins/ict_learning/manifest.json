@@ -1,0 +1,26 @@
+{
+  "id": "ict_learning",
+  "name": "ICT Learning",
+  "version": "0.1.0",
+  "requires_core": ">=0.1.0 <1.0.0",
+  "plugin_api": ">=0.1.0 <1.0.0",
+  "capabilities": [
+    "document_metadata",
+    "templates",
+    "view_panels",
+    "edit_panels",
+    "validators",
+    "search_extensions"
+  ],
+  "dependencies": [],
+  "runtime": "./runtime.py",
+  "frontend": "./frontend.js",
+  "description": "Official ICT learning material extensions for document metadata, content blocks, validation, and search.",
+  "author": "doc-platform",
+  "migrations": [
+    {
+      "version": "0001",
+      "path": "./migrations/0001_initial.sql"
+    }
+  ]
+}

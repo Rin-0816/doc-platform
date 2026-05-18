@@ -1,0 +1,19 @@
+{
+  "id": "ict_learning_document",
+  "name": "ICT learning material",
+  "document": {
+    "title": "",
+    "summary": "",
+    "content_markdown": "# Overview\n\n## Exercise\n\n## Quiz\n\n## Troubleshooting\n"
+  },
+  "metadata": {
+    "learning_objectives": "",
+    "prerequisites": "",
+    "difficulty": "beginner",
+    "estimated_minutes": null,
+    "required_equipment": [],
+    "required_software": [],
+    "supported_platforms": [],
+    "last_verified_on": null
+  }
+}
