@@ -173,6 +173,83 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(restored["document"]["plugin_data"]["ict_learning"]["difficulty"], "beginner")
         self.assertEqual(restored["document"]["plugin_data"]["ict_learning"]["required_equipment"], ["Laptop"])
 
+    def test_glossary_term_includes_documents_that_link_via_wiki_syntax(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute(
+                "SELECT id FROM users WHERE username = 'editor'"
+            ).fetchone()["id"]
+            tag = db.create_tag(connection, {"name": "Diagrams"})
+            referencing = db.create_document(
+                connection,
+                {
+                    "title": "Diagram primer",
+                    "slug": "diagram-primer",
+                    "content_markdown": "Use [[Mermaid]] for sequence diagrams.",
+                    "tag_ids": [tag["id"]],
+                },
+                editor_id,
+            )
+            db.create_document(
+                connection,
+                {
+                    "title": "Unrelated",
+                    "slug": "unrelated",
+                    "content_markdown": "Nothing interesting here.",
+                },
+                editor_id,
+            )
+            mermaid_term = connection.execute(
+                "SELECT id FROM glossary_terms WHERE slug = 'mermaid'"
+            ).fetchone()
+            term = db.get_glossary_term(connection, mermaid_term["id"])
+
+        self.assertEqual(term["term"], "Mermaid")
+        related_ids = [doc["id"] for doc in term["related_documents"]]
+        self.assertEqual(related_ids, [referencing["document"]["id"]])
+        self.assertEqual([t["name"] for t in term["related_tags"]], ["Diagrams"])
+
+    def test_glossary_term_resolves_slug_form_and_alt_text(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute(
+                "SELECT id FROM users WHERE username = 'editor'"
+            ).fetchone()["id"]
+            slug_ref = db.create_document(
+                connection,
+                {
+                    "title": "Slug ref",
+                    "slug": "slug-ref",
+                    "content_markdown": "See [[mermaid]] (lowercase slug match).",
+                },
+                editor_id,
+            )
+            alt_ref = db.create_document(
+                connection,
+                {
+                    "title": "Alt ref",
+                    "slug": "alt-ref",
+                    "content_markdown": "Read [[Mermaid|the diagram tool]] later.",
+                },
+                editor_id,
+            )
+            mermaid_term = connection.execute(
+                "SELECT id FROM glossary_terms WHERE slug = 'mermaid'"
+            ).fetchone()
+            term = db.get_glossary_term(connection, mermaid_term["id"])
+
+        related_ids = sorted(doc["id"] for doc in term["related_documents"])
+        expected = sorted([slug_ref["document"]["id"], alt_ref["document"]["id"]])
+        self.assertEqual(related_ids, expected)
+
+    def test_glossary_term_returns_empty_relations_when_unreferenced(self):
+        with db.connect(self.db_path) as connection:
+            mermaid_term = connection.execute(
+                "SELECT id FROM glossary_terms WHERE slug = 'mermaid'"
+            ).fetchone()
+            term = db.get_glossary_term(connection, mermaid_term["id"])
+
+        self.assertEqual(term["related_documents"], [])
+        self.assertEqual(term["related_tags"], [])
+
     def test_enabled_plugin_without_runtime_is_ignored(self):
         with db.connect(self.db_path) as connection:
             connection.execute(
@@ -206,6 +283,238 @@ class BackendTests(unittest.TestCase):
             plugins,
             [{"id": "ict_learning", "module_url": "/plugins/ict_learning/frontend.js"}],
         )
+
+    def test_create_glossary_term_assigns_unique_slug(self):
+        with db.connect(self.db_path) as connection:
+            term1 = db.create_glossary_term(connection, {"term": "Python Language"})
+            term2 = db.create_glossary_term(connection, {"term": "Python Language"})
+
+        self.assertEqual(term1["slug"], "python-language")
+        self.assertTrue(term2["slug"].startswith("python-language"))
+        self.assertNotEqual(term1["slug"], term2["slug"])
+
+    def test_update_glossary_term_changes_fields(self):
+        with db.connect(self.db_path) as connection:
+            created = db.create_glossary_term(connection, {"term": "Old Term", "description_markdown": "old desc"})
+            updated = db.update_glossary_term(connection, created["id"], {"term": "New Term", "description_markdown": "new desc"})
+
+        self.assertEqual(updated["term"], "New Term")
+        self.assertEqual(updated["description_markdown"], "new desc")
+
+    def test_delete_glossary_term_returns_true_then_false(self):
+        with db.connect(self.db_path) as connection:
+            created = db.create_glossary_term(connection, {"term": "Temporary Term"})
+            first_delete = db.delete_glossary_term(connection, created["id"])
+            second_delete = db.delete_glossary_term(connection, created["id"])
+
+        self.assertTrue(first_delete)
+        self.assertFalse(second_delete)
+
+    def test_create_glossary_term_with_aliases_persists_them(self):
+        with db.connect(self.db_path) as connection:
+            created = db.create_glossary_term(
+                connection,
+                {"term": "Database", "aliases": ["DB", "RDBMS"]},
+            )
+            fetched = db.get_glossary_term(connection, created["id"])
+
+        self.assertEqual(len(fetched["aliases"]), 2)
+        alias_texts = [a["alias"] for a in fetched["aliases"]]
+        self.assertIn("DB", alias_texts)
+        self.assertIn("RDBMS", alias_texts)
+        alias_slugs = [a["alias_slug"] for a in fetched["aliases"]]
+        self.assertIn("db", alias_slugs)
+        self.assertIn("rdbms", alias_slugs)
+
+    def test_alias_matching_resolves_documents(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute(
+                "SELECT id FROM users WHERE username = 'editor'"
+            ).fetchone()["id"]
+            term = db.create_glossary_term(
+                connection,
+                {"term": "Database", "aliases": ["DB"]},
+            )
+            doc = db.create_document(
+                connection,
+                {
+                    "title": "DB Guide",
+                    "slug": "db-guide",
+                    "content_markdown": "Use [[DB]] for storage.",
+                },
+                editor_id,
+            )
+            fetched = db.get_glossary_term(connection, term["id"])
+
+        related_ids = [d["id"] for d in fetched["related_documents"]]
+        self.assertIn(doc["document"]["id"], related_ids)
+
+    def test_alias_uniqueness_across_terms_is_enforced(self):
+        with db.connect(self.db_path) as connection:
+            db.create_glossary_term(
+                connection,
+                {"term": "Alpha", "aliases": ["Foo"]},
+            )
+            with self.assertRaises(ValueError):
+                db.create_glossary_term(
+                    connection,
+                    {"term": "Beta", "aliases": ["Foo"]},
+                )
+
+    def test_update_glossary_term_replaces_aliases(self):
+        with db.connect(self.db_path) as connection:
+            created = db.create_glossary_term(
+                connection,
+                {"term": "Gamma", "aliases": ["A"]},
+            )
+            db.update_glossary_term(
+                connection,
+                created["id"],
+                {"aliases": ["B", "C"]},
+            )
+            fetched = db.get_glossary_term(connection, created["id"])
+
+        alias_texts = [a["alias"] for a in fetched["aliases"]]
+        self.assertNotIn("A", alias_texts)
+        self.assertIn("B", alias_texts)
+        self.assertIn("C", alias_texts)
+        self.assertEqual(len(fetched["aliases"]), 2)
+
+    def test_term_tag_assignment(self):
+        with db.connect(self.db_path) as connection:
+            tag = db.create_tag(connection, {"name": "Infrastructure"})
+            term = db.create_glossary_term(
+                connection,
+                {"term": "Server", "tag_ids": [tag["id"]]},
+            )
+            fetched = db.get_glossary_term(connection, term["id"])
+
+        self.assertEqual(len(fetched["tags"]), 1)
+        self.assertEqual(fetched["tags"][0]["name"], "Infrastructure")
+        self.assertEqual(fetched["tags"][0]["id"], tag["id"])
+
+    def test_create_glossary_term_writes_initial_revision(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            term = db.create_glossary_term(
+                connection,
+                {"term": "Revision Test", "description_markdown": "initial desc"},
+                user_id=editor_id,
+            )
+            revisions = db.list_term_revisions(connection, term["id"])
+
+        self.assertEqual(len(revisions), 1)
+        self.assertEqual(revisions[0]["version_number"], 1)
+        self.assertEqual(revisions[0]["term"], "Revision Test")
+        self.assertEqual(revisions[0]["slug"], term["slug"])
+
+    def test_update_glossary_term_writes_new_revision(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            term = db.create_glossary_term(
+                connection,
+                {"term": "Update Rev", "description_markdown": "v1"},
+                user_id=editor_id,
+            )
+            db.update_glossary_term(
+                connection,
+                term["id"],
+                {"description_markdown": "v2"},
+                user_id=editor_id,
+            )
+            revisions = db.list_term_revisions(connection, term["id"])
+
+        self.assertEqual(len(revisions), 2)
+        # list is DESC, so [0] is newest
+        self.assertEqual(revisions[0]["version_number"], 2)
+        self.assertEqual(revisions[1]["version_number"], 1)
+
+    def test_restore_glossary_term_revision_reverts_and_creates_new_revision(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            term = db.create_glossary_term(
+                connection,
+                {"term": "Restore Test", "description_markdown": "version one"},
+                user_id=editor_id,
+            )
+            db.update_glossary_term(
+                connection,
+                term["id"],
+                {"description_markdown": "version two"},
+                user_id=editor_id,
+            )
+            revisions_before = db.list_term_revisions(connection, term["id"])
+            v1_id = revisions_before[-1]["id"]  # oldest = v1
+
+            restored = db.restore_term_revision(connection, v1_id, user_id=editor_id)
+            revisions_after = db.list_term_revisions(connection, term["id"])
+
+        self.assertEqual(restored["description_markdown"], "version one")
+        self.assertEqual(len(revisions_after), 3)
+        newest = revisions_after[0]
+        self.assertEqual(newest["version_number"], 3)
+        self.assertEqual(newest["restored_from_revision_id"], v1_id)
+
+    def test_term_revision_diff_lists_changes(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            term = db.create_glossary_term(
+                connection,
+                {"term": "Diff Test", "description_markdown": "line one"},
+                user_id=editor_id,
+            )
+            db.update_glossary_term(
+                connection,
+                term["id"],
+                {"description_markdown": "line two"},
+                user_id=editor_id,
+            )
+            revisions = db.list_term_revisions(connection, term["id"])
+            v2_id = revisions[0]["id"]
+            v1_id = revisions[1]["id"]
+            diff_lines = db.term_revision_diff(connection, v2_id, v1_id)
+
+        self.assertIsInstance(diff_lines, list)
+        self.assertTrue(len(diff_lines) > 0)
+
+    def test_bulk_upsert_glossary_terms_creates_and_updates(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            # Create an existing term
+            existing = db.create_glossary_term(
+                connection,
+                {"term": "Existing Term", "slug": "existing-term", "description_markdown": "old desc"},
+                user_id=editor_id,
+            )
+            payloads = [
+                {"term": "Brand New Term", "slug": "brand-new-term", "description_markdown": "new"},
+                {"term": "Existing Term", "slug": "existing-term", "description_markdown": "updated desc"},
+            ]
+            summary = db.bulk_upsert_glossary_terms(connection, payloads, user_id=editor_id)
+
+            # Verify the updated term has the new description
+            updated = db.get_glossary_term(connection, existing["id"])
+
+        self.assertEqual(len(summary["created"]), 1)
+        self.assertEqual(len(summary["updated"]), 1)
+        self.assertEqual(len(summary["errors"]), 0)
+        self.assertIn(existing["id"], summary["updated"])
+        self.assertEqual(updated["description_markdown"], "updated desc")
+
+    def test_get_set_setting_roundtrip(self):
+        with db.connect(self.db_path) as connection:
+            # Missing key returns default
+            missing = db.get_setting(connection, "nonexistent_key", default="default_val")
+            # Set and get back
+            db.set_setting(connection, "test_key", "test_value")
+            fetched = db.get_setting(connection, "test_key")
+            # Overwrite
+            db.set_setting(connection, "test_key", "updated_value")
+            overwritten = db.get_setting(connection, "test_key")
+
+        self.assertEqual(missing, "default_val")
+        self.assertEqual(fetched, "test_value")
+        self.assertEqual(overwritten, "updated_value")
 
 
 class HttpApiTests(unittest.TestCase):
@@ -414,6 +723,35 @@ class HttpApiTests(unittest.TestCase):
         self.assertEqual(status, 403)
         self.assertEqual(payload["error"]["code"], "permission_denied")
 
+    def test_glossary_detail_endpoint_returns_related_documents(self):
+        cookie = self.login_cookie()
+        status, created, _ = self.request(
+            "POST",
+            "/api/documents",
+            {
+                "title": "Wiki link host",
+                "slug": "wiki-link-host",
+                "content_markdown": "Refer to [[Mermaid]] for diagrams.",
+            },
+            cookie,
+        )
+        self.assertEqual(status, 201)
+        host_id = created["document"]["id"]
+
+        status, payload, _ = self.request("GET", "/api/glossary", cookie=cookie)
+        self.assertEqual(status, 200)
+        mermaid = next(item for item in payload["items"] if item["slug"] == "mermaid")
+
+        status, detail, _ = self.request(
+            "GET", f"/api/glossary/{mermaid['id']}", cookie=cookie
+        )
+        self.assertEqual(status, 200)
+        self.assertIn("related_documents", detail)
+        self.assertTrue(
+            any(doc["id"] == host_id for doc in detail["related_documents"]),
+            f"expected document {host_id} in related_documents: {detail['related_documents']}",
+        )
+
     def test_invalid_comment_payload_returns_validation_error(self):
         cookie = self.login_cookie()
         status, created, _ = self.request(
@@ -431,6 +769,174 @@ class HttpApiTests(unittest.TestCase):
         )
         self.assertEqual(status, 400)
         self.assertEqual(payload["error"]["code"], "validation_error")
+
+    def test_glossary_create_requires_editor(self):
+        # Viewer attempt should be 403
+        status, _, headers = self.request("POST", "/api/auth/login", {"username": "viewer", "password": "viewer"})
+        self.assertEqual(status, 200)
+        viewer_cookie = headers["Set-Cookie"].split(";", 1)[0]
+        status, payload, _ = self.request("POST", "/api/glossary", {"term": "ViewerTerm"}, viewer_cookie)
+        self.assertEqual(status, 403)
+        self.assertEqual(payload["error"]["code"], "permission_denied")
+
+        # Editor attempt should be 201
+        editor_cookie = self.login_cookie()
+        status, term, _ = self.request("POST", "/api/glossary", {"term": "EditorTerm"}, editor_cookie)
+        self.assertEqual(status, 201)
+        self.assertEqual(term["term"], "EditorTerm")
+
+    def test_glossary_delete_returns_204_then_404(self):
+        cookie = self.login_cookie()
+        status, term, _ = self.request("POST", "/api/glossary", {"term": "DeleteMe"}, cookie)
+        self.assertEqual(status, 201)
+        term_id = term["id"]
+
+        status, _, _ = self.request("DELETE", f"/api/glossary/{term_id}", cookie=cookie)
+        self.assertEqual(status, 204)
+
+        status, payload, _ = self.request("DELETE", f"/api/glossary/{term_id}", cookie=cookie)
+        self.assertEqual(status, 404)
+        self.assertEqual(payload["error"]["code"], "not_found")
+
+    def test_glossary_post_with_aliases_via_api(self):
+        cookie = self.login_cookie()
+        # Create a tag first
+        status, tag, _ = self.request("POST", "/api/tags", {"name": "Networking"}, cookie)
+        self.assertEqual(status, 201)
+
+        # Create a term with aliases and tag_ids
+        status, term, _ = self.request(
+            "POST",
+            "/api/glossary",
+            {"term": "Internet Protocol", "aliases": ["IP", "TCP/IP"], "tag_ids": [tag["id"]]},
+            cookie,
+        )
+        self.assertEqual(status, 201)
+        self.assertIn("aliases", term)
+        alias_texts = [a["alias"] for a in term["aliases"]]
+        self.assertIn("IP", alias_texts)
+        self.assertIn("TCP/IP", alias_texts)
+        self.assertIn("tags", term)
+        self.assertEqual(len(term["tags"]), 1)
+        self.assertEqual(term["tags"][0]["name"], "Networking")
+
+        # Verify list endpoint also includes aliases
+        status, list_payload, _ = self.request("GET", "/api/glossary", cookie=cookie)
+        self.assertEqual(status, 200)
+        found = next((i for i in list_payload["items"] if i["id"] == term["id"]), None)
+        self.assertIsNotNone(found)
+        self.assertIn("aliases", found)
+        self.assertTrue(len(found["aliases"]) >= 2)
+
+        # Verify collision is rejected
+        status, conflict, _ = self.request(
+            "POST",
+            "/api/glossary",
+            {"term": "IP Protocol", "aliases": ["IP"]},
+            cookie,
+        )
+        self.assertEqual(status, 400)
+        self.assertEqual(conflict["error"]["code"], "validation_error")
+
+    def test_glossary_revisions_endpoint(self):
+        cookie = self.login_cookie()
+        # Create term (v1)
+        status, term, _ = self.request(
+            "POST",
+            "/api/glossary",
+            {"term": "Rev Endpoint Term", "description_markdown": "v1 content"},
+            cookie,
+        )
+        self.assertEqual(status, 201)
+        term_id = term["id"]
+
+        # Update (v2)
+        status, _, _ = self.request(
+            "PUT",
+            f"/api/glossary/{term_id}",
+            {"description_markdown": "v2 content"},
+            cookie,
+        )
+        self.assertEqual(status, 200)
+
+        # Update again (v3)
+        status, _, _ = self.request(
+            "PUT",
+            f"/api/glossary/{term_id}",
+            {"description_markdown": "v3 content"},
+            cookie,
+        )
+        self.assertEqual(status, 200)
+
+        # List revisions (should be 3, in descending order)
+        status, payload, _ = self.request(
+            "GET",
+            f"/api/glossary/{term_id}/revisions",
+            cookie=cookie,
+        )
+        self.assertEqual(status, 200)
+        items = payload["items"]
+        self.assertEqual(len(items), 3)
+        self.assertEqual(items[0]["version_number"], 3)
+        self.assertEqual(items[1]["version_number"], 2)
+        self.assertEqual(items[2]["version_number"], 1)
+
+    def test_glossary_bulk_endpoint_requires_admin(self):
+        # Viewer: 403
+        status, _, viewer_headers = self.request("POST", "/api/auth/login", {"username": "viewer", "password": "viewer"})
+        self.assertEqual(status, 200)
+        viewer_cookie = viewer_headers["Set-Cookie"].split(";", 1)[0]
+        status, payload, _ = self.request("POST", "/api/glossary/bulk", [{"term": "X"}], viewer_cookie)
+        self.assertEqual(status, 403)
+        self.assertEqual(payload["error"]["code"], "permission_denied")
+
+        # Editor: 403
+        editor_cookie = self.login_cookie()
+        # login_cookie uses editor credentials
+        status, payload, _ = self.request("POST", "/api/glossary/bulk", [{"term": "X"}], editor_cookie)
+        self.assertEqual(status, 403)
+        self.assertEqual(payload["error"]["code"], "permission_denied")
+
+        # Admin: 200
+        status, _, admin_headers = self.request("POST", "/api/auth/login", {"username": "admin", "password": "admin"})
+        self.assertEqual(status, 200)
+        admin_cookie = admin_headers["Set-Cookie"].split(";", 1)[0]
+        status, summary, _ = self.request(
+            "POST",
+            "/api/glossary/bulk",
+            [{"term": "BulkTerm", "description_markdown": "bulk desc"}],
+            admin_cookie,
+        )
+        self.assertEqual(status, 200)
+        self.assertIn("created", summary)
+        self.assertEqual(len(summary["created"]), 1)
+        self.assertEqual(len(summary["errors"]), 0)
+
+    def test_settings_put_requires_admin(self):
+        # Viewer: 403
+        status, _, viewer_headers = self.request("POST", "/api/auth/login", {"username": "viewer", "password": "viewer"})
+        self.assertEqual(status, 200)
+        viewer_cookie = viewer_headers["Set-Cookie"].split(";", 1)[0]
+        status, payload, _ = self.request("PUT", "/api/settings/glossary_autolink", {"value": "on"}, viewer_cookie)
+        self.assertEqual(status, 403)
+
+        # Editor: 403
+        editor_cookie = self.login_cookie()
+        status, payload, _ = self.request("PUT", "/api/settings/glossary_autolink", {"value": "on"}, editor_cookie)
+        self.assertEqual(status, 403)
+
+        # Admin: 200
+        status, _, admin_headers = self.request("POST", "/api/auth/login", {"username": "admin", "password": "admin"})
+        self.assertEqual(status, 200)
+        admin_cookie = admin_headers["Set-Cookie"].split(";", 1)[0]
+        status, result, _ = self.request("PUT", "/api/settings/glossary_autolink", {"value": "on"}, admin_cookie)
+        self.assertEqual(status, 200)
+        self.assertEqual(result["value"], "on")
+
+        # Verify GET /api/settings returns the updated value (viewer can read)
+        status, settings, _ = self.request("GET", "/api/settings", cookie=viewer_cookie)
+        self.assertEqual(status, 200)
+        self.assertEqual(settings.get("glossary_autolink"), "on")
 
 
 if __name__ == "__main__":

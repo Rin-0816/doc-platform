@@ -155,6 +155,27 @@ def initialize_database(db_path: str | Path) -> None:
               updated_at TEXT NOT NULL
             );
 
+            CREATE TABLE IF NOT EXISTS glossary_term_aliases (
+              id INTEGER PRIMARY KEY,
+              term_id INTEGER NOT NULL,
+              alias TEXT NOT NULL,
+              alias_slug TEXT NOT NULL,
+              position INTEGER NOT NULL DEFAULT 0,
+              UNIQUE (term_id, alias_slug),
+              FOREIGN KEY (term_id) REFERENCES glossary_terms(id) ON DELETE CASCADE
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_glossary_term_aliases_slug
+              ON glossary_term_aliases(alias_slug);
+
+            CREATE TABLE IF NOT EXISTS glossary_term_tags (
+              term_id INTEGER NOT NULL,
+              tag_id INTEGER NOT NULL,
+              PRIMARY KEY (term_id, tag_id),
+              FOREIGN KEY (term_id) REFERENCES glossary_terms(id) ON DELETE CASCADE,
+              FOREIGN KEY (tag_id) REFERENCES tags(id)
+            );
+
             CREATE TABLE IF NOT EXISTS glossary_term_documents (
               term_id INTEGER NOT NULL,
               document_id INTEGER NOT NULL,
@@ -204,6 +225,30 @@ def initialize_database(db_path: str | Path) -> None:
               disabled_at TEXT,
               last_checked_at TEXT,
               manifest_json TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS glossary_revisions (
+              id INTEGER PRIMARY KEY,
+              term_id INTEGER NOT NULL,
+              version_number INTEGER NOT NULL,
+              term TEXT NOT NULL,
+              slug TEXT NOT NULL,
+              description_markdown TEXT NOT NULL,
+              aliases_json TEXT NOT NULL DEFAULT '[]',
+              tag_ids_json TEXT NOT NULL DEFAULT '[]',
+              created_by INTEGER,
+              created_at TEXT NOT NULL,
+              restored_from_revision_id INTEGER,
+              UNIQUE (term_id, version_number),
+              FOREIGN KEY (term_id) REFERENCES glossary_terms(id) ON DELETE CASCADE,
+              FOREIGN KEY (created_by) REFERENCES users(id),
+              FOREIGN KEY (restored_from_revision_id) REFERENCES glossary_revisions(id)
+            );
+
+            CREATE TABLE IF NOT EXISTS app_settings (
+              key TEXT PRIMARY KEY,
+              value TEXT NOT NULL,
+              updated_at TEXT NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS schema_migrations (
@@ -654,13 +699,225 @@ def restore_revision(connection: sqlite3.Connection, revision_id: int, user_id: 
     return {"document": get_document(connection, revision["document_id"]), "revision_id": new_revision_id}
 
 
+def refresh_glossary_fts(connection: sqlite3.Connection, term_id: int) -> None:
+    row = connection.execute(
+        "SELECT term, description_markdown FROM glossary_terms WHERE id = ?",
+        (term_id,),
+    ).fetchone()
+    connection.execute("DELETE FROM glossary_terms_fts WHERE rowid = ?", (term_id,))
+    if row:
+        aliases = _load_term_aliases(connection, term_id)
+        alias_text = " ".join(a["alias"] for a in aliases)
+        fts_term = f"{row['term']} {alias_text}".strip() if alias_text else row["term"]
+        connection.execute(
+            "INSERT INTO glossary_terms_fts (rowid, term, description_markdown) VALUES (?, ?, ?)",
+            (term_id, fts_term, row["description_markdown"]),
+        )
+
+
+def _load_term_aliases(connection: sqlite3.Connection, term_id: int) -> list[dict[str, Any]]:
+    rows = connection.execute(
+        "SELECT id, alias, alias_slug FROM glossary_term_aliases WHERE term_id = ? ORDER BY position, id",
+        (term_id,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def _load_term_tags(connection: sqlite3.Connection, term_id: int) -> list[dict[str, Any]]:
+    rows = connection.execute(
+        """
+        SELECT t.id, t.name, t.slug
+        FROM tags t
+        JOIN glossary_term_tags gtt ON gtt.tag_id = t.id
+        WHERE gtt.term_id = ?
+        ORDER BY t.name
+        """,
+        (term_id,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def _replace_term_aliases(connection: sqlite3.Connection, term_id: int, aliases: list[str] | None) -> None:
+    if aliases is None:
+        return
+    if not isinstance(aliases, list):
+        raise ValueError("aliases must be a list of strings.")
+    connection.execute("DELETE FROM glossary_term_aliases WHERE term_id = ?", (term_id,))
+    seen_slugs: set[str] = set()
+    for position, alias_raw in enumerate(aliases):
+        alias_text = str(alias_raw).strip()
+        if not alias_text:
+            continue
+        alias_slug = normalize_slug(alias_text)
+        if not alias_slug:
+            continue
+        if alias_slug in seen_slugs:
+            raise ValueError(f"Duplicate alias '{alias_text}' within the same request.")
+        seen_slugs.add(alias_slug)
+        # Check uniqueness: no other term may have this as slug or alias_slug
+        conflict_term = connection.execute(
+            "SELECT id FROM glossary_terms WHERE slug = ? AND id != ?",
+            (alias_slug, term_id),
+        ).fetchone()
+        if conflict_term:
+            raise ValueError(f"Alias '{alias_text}' conflicts with an existing term slug.")
+        conflict_alias = connection.execute(
+            """
+            SELECT term_id FROM glossary_term_aliases
+            WHERE alias_slug = ? AND term_id != ?
+            """,
+            (alias_slug, term_id),
+        ).fetchone()
+        if conflict_alias:
+            raise ValueError(f"Alias '{alias_text}' is already used by another term.")
+        connection.execute(
+            "INSERT INTO glossary_term_aliases (term_id, alias, alias_slug, position) VALUES (?, ?, ?, ?)",
+            (term_id, alias_text, alias_slug, position),
+        )
+
+
+def _replace_term_tags(connection: sqlite3.Connection, term_id: int, tag_ids: list[int] | None) -> None:
+    if tag_ids is None:
+        return
+    if not isinstance(tag_ids, list):
+        raise ValueError("tag_ids must be a list of integers.")
+    connection.execute("DELETE FROM glossary_term_tags WHERE term_id = ?", (term_id,))
+    for tag_id in tag_ids:
+        if not isinstance(tag_id, int):
+            try:
+                tag_id = int(tag_id)
+            except (TypeError, ValueError) as exc:
+                raise ValueError("tag_ids must contain integers.") from exc
+        existing = connection.execute("SELECT 1 FROM tags WHERE id = ?", (tag_id,)).fetchone()
+        if not existing:
+            raise ValueError(f"Tag with id {tag_id} does not exist.")
+        connection.execute(
+            "INSERT OR IGNORE INTO glossary_term_tags (term_id, tag_id) VALUES (?, ?)",
+            (term_id, tag_id),
+        )
+
+
+def _snapshot_term_revision(connection: sqlite3.Connection, term_id: int, user_id: int | None = None, restored_from: int | None = None) -> int | None:
+    """Capture the current state of a glossary term as a new revision."""
+    row = connection.execute("SELECT * FROM glossary_terms WHERE id = ?", (term_id,)).fetchone()
+    if not row:
+        return None
+    aliases = [a["alias"] for a in connection.execute(
+        "SELECT alias FROM glossary_term_aliases WHERE term_id = ? ORDER BY position, alias",
+        (term_id,),
+    )]
+    tag_ids = [r["tag_id"] for r in connection.execute(
+        "SELECT tag_id FROM glossary_term_tags WHERE term_id = ?",
+        (term_id,),
+    )]
+    next_version = connection.execute(
+        "SELECT COALESCE(MAX(version_number), 0) + 1 AS v FROM glossary_revisions WHERE term_id = ?",
+        (term_id,),
+    ).fetchone()["v"]
+    cursor = connection.execute(
+        """
+        INSERT INTO glossary_revisions
+          (term_id, version_number, term, slug, description_markdown,
+           aliases_json, tag_ids_json, created_by, created_at, restored_from_revision_id)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (term_id, next_version, row["term"], row["slug"], row["description_markdown"],
+         json.dumps(aliases), json.dumps(tag_ids), user_id, utc_now(), restored_from),
+    )
+    return cursor.lastrowid
+
+
+def create_glossary_term(connection: sqlite3.Connection, payload: dict[str, Any], user_id: int | None = None) -> dict[str, Any] | None:
+    term_text = str(payload.get("term") or "").strip()
+    if not term_text:
+        raise ValueError("term is required.")
+    slug = taxonomy_slug(connection, "glossary_terms", {"slug": payload.get("slug"), "name": term_text}, term_text)
+    description_markdown = str(payload.get("description_markdown") or "")
+    raw_aliases = payload.get("aliases")
+    tag_ids = payload.get("tag_ids")
+    now = utc_now()
+    cursor = connection.execute(
+        """
+        INSERT INTO glossary_terms (term, slug, description_markdown, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (term_text, slug, description_markdown, now, now),
+    )
+    new_id = cursor.lastrowid
+    _replace_term_aliases(connection, new_id, raw_aliases)
+    _replace_term_tags(connection, new_id, tag_ids)
+    refresh_glossary_fts(connection, new_id)
+    _snapshot_term_revision(connection, new_id, user_id=user_id)
+    connection.commit()
+    return get_glossary_term(connection, new_id)
+
+
+def update_glossary_term(connection: sqlite3.Connection, term_id: int, payload: dict[str, Any], user_id: int | None = None) -> dict[str, Any] | None:
+    row = connection.execute("SELECT * FROM glossary_terms WHERE id = ?", (term_id,)).fetchone()
+    if not row:
+        return None
+    term_text = str(payload.get("term") or "").strip() or row["term"]
+    if not term_text:
+        raise ValueError("term is required.")
+    new_slug = payload.get("slug")
+    if new_slug is not None:
+        new_slug = normalize_slug(str(new_slug))
+        if not new_slug:
+            new_slug = row["slug"]
+        elif new_slug != row["slug"]:
+            existing = connection.execute(
+                "SELECT 1 FROM glossary_terms WHERE slug = ? AND id != ?", (new_slug, term_id)
+            ).fetchone()
+            if existing:
+                raise ValueError(f"Slug '{new_slug}' is already in use.")
+    else:
+        new_slug = row["slug"]
+    description_markdown = payload.get("description_markdown")
+    if description_markdown is None:
+        description_markdown = row["description_markdown"]
+    raw_aliases = payload.get("aliases")
+    tag_ids = payload.get("tag_ids")
+    now = utc_now()
+    connection.execute(
+        """
+        UPDATE glossary_terms
+        SET term = ?, slug = ?, description_markdown = ?, updated_at = ?
+        WHERE id = ?
+        """,
+        (term_text, new_slug, description_markdown, now, term_id),
+    )
+    if raw_aliases is not None:
+        _replace_term_aliases(connection, term_id, raw_aliases)
+    if tag_ids is not None:
+        _replace_term_tags(connection, term_id, tag_ids)
+    refresh_glossary_fts(connection, term_id)
+    _snapshot_term_revision(connection, term_id, user_id=user_id)
+    connection.commit()
+    return get_glossary_term(connection, term_id)
+
+
+def delete_glossary_term(connection: sqlite3.Connection, term_id: int) -> bool:
+    cursor = connection.execute("DELETE FROM glossary_terms WHERE id = ?", (term_id,))
+    if cursor.rowcount == 0:
+        connection.commit()
+        return False
+    connection.execute("DELETE FROM glossary_terms_fts WHERE rowid = ?", (term_id,))
+    connection.commit()
+    return True
+
+
 def list_glossary(connection: sqlite3.Connection, limit: int = 100, offset: int = 0) -> dict[str, Any]:
     rows = connection.execute(
         "SELECT * FROM glossary_terms ORDER BY term LIMIT ? OFFSET ?",
         (limit, offset),
     ).fetchall()
     total = connection.execute("SELECT COUNT(*) AS count FROM glossary_terms").fetchone()["count"]
-    return {"items": [dict(row) for row in rows], "total": total}
+    items = []
+    for row in rows:
+        item = dict(row)
+        item["aliases"] = _load_term_aliases(connection, row["id"])
+        items.append(item)
+    return {"items": items, "total": total}
 
 
 def search_glossary(connection: sqlite3.Connection, query: str = "", limit: int = 100, offset: int = 0) -> dict[str, Any]:
@@ -690,7 +947,173 @@ def search_glossary(connection: sqlite3.Connection, query: str = "", limit: int 
 
 def get_glossary_term(connection: sqlite3.Connection, term_id: int) -> dict[str, Any] | None:
     row = connection.execute("SELECT * FROM glossary_terms WHERE id = ?", (term_id,)).fetchone()
-    return dict(row) if row else None
+    if not row:
+        return None
+    term = dict(row)
+    aliases = _load_term_aliases(connection, term_id)
+    term["aliases"] = aliases
+    term["tags"] = _load_term_tags(connection, term_id)
+    related_documents = find_documents_referencing_term(connection, term["term"], term["slug"], aliases=aliases)
+    term["related_documents"] = related_documents
+    term["related_tags"] = aggregate_document_tags(
+        connection, [item["id"] for item in related_documents]
+    )
+    return term
+
+
+def list_term_revisions(connection: sqlite3.Connection, term_id: int) -> list[dict[str, Any]]:
+    rows = connection.execute(
+        """
+        SELECT r.id, r.term_id, r.version_number, r.term, r.slug,
+               r.created_by, r.created_at, r.restored_from_revision_id,
+               u.username AS author_username, u.display_name AS author_display_name
+        FROM glossary_revisions r
+        LEFT JOIN users u ON u.id = r.created_by
+        WHERE r.term_id = ?
+        ORDER BY r.version_number DESC
+        """,
+        (term_id,),
+    ).fetchall()
+    return [dict(row) for row in rows]
+
+
+def get_term_revision(connection: sqlite3.Connection, revision_id: int) -> dict[str, Any] | None:
+    row = connection.execute(
+        """
+        SELECT r.*, u.username AS author_username, u.display_name AS author_display_name
+        FROM glossary_revisions r
+        LEFT JOIN users u ON u.id = r.created_by
+        WHERE r.id = ?
+        """,
+        (revision_id,),
+    ).fetchone()
+    if not row:
+        return None
+    out = dict(row)
+    out["aliases"] = json.loads(out.pop("aliases_json", "[]") or "[]")
+    out["tag_ids"] = json.loads(out.pop("tag_ids_json", "[]") or "[]")
+    return out
+
+
+def restore_term_revision(connection: sqlite3.Connection, revision_id: int, user_id: int | None = None) -> dict[str, Any] | None:
+    rev = get_term_revision(connection, revision_id)
+    if not rev:
+        return None
+    term_id = rev["term_id"]
+    # Re-apply the snapshot fields
+    connection.execute(
+        "UPDATE glossary_terms SET term = ?, slug = ?, description_markdown = ?, updated_at = ? WHERE id = ?",
+        (rev["term"], rev["slug"], rev["description_markdown"], utc_now(), term_id),
+    )
+    # Restore aliases (delete existing, insert from snapshot)
+    connection.execute("DELETE FROM glossary_term_aliases WHERE term_id = ?", (term_id,))
+    for position, alias in enumerate(rev["aliases"]):
+        connection.execute(
+            "INSERT INTO glossary_term_aliases (term_id, alias, alias_slug, position) VALUES (?, ?, ?, ?)",
+            (term_id, alias, normalize_slug(alias), position),
+        )
+    # Restore tags
+    connection.execute("DELETE FROM glossary_term_tags WHERE term_id = ?", (term_id,))
+    for tag_id in rev["tag_ids"]:
+        # Only restore tags that still exist
+        if connection.execute("SELECT 1 FROM tags WHERE id = ?", (tag_id,)).fetchone():
+            connection.execute(
+                "INSERT INTO glossary_term_tags (term_id, tag_id) VALUES (?, ?)",
+                (term_id, tag_id),
+            )
+    # FTS refresh
+    refresh_glossary_fts(connection, term_id)
+    # Snapshot the restoration itself as a new revision
+    _snapshot_term_revision(connection, term_id, user_id=user_id, restored_from=revision_id)
+    connection.commit()
+    return get_glossary_term(connection, term_id)
+
+
+def term_revision_diff(connection: sqlite3.Connection, revision_a_id: int, revision_b_id: int) -> list[str]:
+    """Return a unified diff of description_markdown between two glossary revisions."""
+    rev_a = get_term_revision(connection, revision_a_id)
+    rev_b = get_term_revision(connection, revision_b_id)
+    if not rev_a or not rev_b:
+        return []
+    return list(difflib.unified_diff(
+        rev_b["description_markdown"].splitlines(),
+        rev_a["description_markdown"].splitlines(),
+        fromfile=f"v{rev_b['version_number']}",
+        tofile=f"v{rev_a['version_number']}",
+        lineterm="",
+    ))
+
+
+WIKI_LINK_PATTERN = re.compile(r"\[\[([^\]|\n]+?)(?:\|[^\]\n]+)?\]\]")
+
+
+def extract_wiki_link_targets(markdown: str) -> list[str]:
+    """Return the lowercased target text of every [[link]] in the given markdown."""
+    if not markdown:
+        return []
+    return [match.group(1).strip().lower() for match in WIKI_LINK_PATTERN.finditer(markdown)]
+
+
+def find_documents_referencing_term(
+    connection: sqlite3.Connection, term_name: str, term_slug: str, aliases: list[dict[str, Any]] | None = None
+) -> list[dict[str, Any]]:
+    targets = {value.lower() for value in (term_name, term_slug) if value}
+    for alias in (aliases or []):
+        if alias.get("alias"):
+            targets.add(alias["alias"].lower())
+        if alias.get("alias_slug"):
+            targets.add(alias["alias_slug"].lower())
+    if not targets:
+        return []
+    rows = connection.execute(
+        """
+        SELECT id, title, slug, summary, content_markdown, category_id, lesson_id, updated_at
+        FROM documents
+        WHERE deleted_at IS NULL
+        ORDER BY title
+        """
+    ).fetchall()
+    matches = []
+    for row in rows:
+        link_targets = extract_wiki_link_targets(row["content_markdown"] or "")
+        if any(target in targets for target in link_targets):
+            category = connection.execute(
+                "SELECT * FROM categories WHERE id = ?", (row["category_id"],)
+            ).fetchone()
+            lesson = connection.execute(
+                "SELECT * FROM lessons WHERE id = ?", (row["lesson_id"],)
+            ).fetchone()
+            matches.append(
+                {
+                    "id": row["id"],
+                    "title": row["title"],
+                    "slug": row["slug"],
+                    "summary": row["summary"],
+                    "updated_at": row["updated_at"],
+                    "category": dict(category) if category else None,
+                    "lesson": dict(lesson) if lesson else None,
+                }
+            )
+    return matches
+
+
+def aggregate_document_tags(
+    connection: sqlite3.Connection, document_ids: list[int]
+) -> list[dict[str, Any]]:
+    if not document_ids:
+        return []
+    placeholders = ",".join("?" for _ in document_ids)
+    rows = connection.execute(
+        f"""
+        SELECT DISTINCT t.id, t.name, t.slug
+        FROM tags t
+        JOIN document_tags dt ON dt.tag_id = t.id
+        WHERE dt.document_id IN ({placeholders})
+        ORDER BY t.name
+        """,
+        document_ids,
+    ).fetchall()
+    return [dict(row) for row in rows]
 
 
 def create_comment(connection: sqlite3.Connection, document_id: int, payload: dict[str, Any], user_id: int) -> dict[str, Any]:
@@ -930,3 +1353,73 @@ def mark_comment_orphaned(connection: sqlite3.Connection, comment_id: int) -> No
         "UPDATE comments SET status = 'orphaned', updated_at = ? WHERE id = ?",
         (utc_now(), comment_id),
     )
+
+
+# ---------------------------------------------------------------------------
+# App settings
+# ---------------------------------------------------------------------------
+
+def get_setting(connection: sqlite3.Connection, key: str, default: str | None = None) -> str | None:
+    row = connection.execute("SELECT value FROM app_settings WHERE key = ?", (key,)).fetchone()
+    if not row:
+        return default
+    return row["value"]
+
+
+def set_setting(connection: sqlite3.Connection, key: str, value: str) -> None:
+    connection.execute(
+        """
+        INSERT INTO app_settings (key, value, updated_at)
+        VALUES (?, ?, ?)
+        ON CONFLICT(key) DO UPDATE SET value = excluded.value, updated_at = excluded.updated_at
+        """,
+        (key, value, utc_now()),
+    )
+    connection.commit()
+
+
+def list_settings(connection: sqlite3.Connection) -> dict[str, str]:
+    return {row["key"]: row["value"] for row in connection.execute("SELECT key, value FROM app_settings")}
+
+
+# ---------------------------------------------------------------------------
+# Bulk upsert glossary terms
+# ---------------------------------------------------------------------------
+
+def bulk_upsert_glossary_terms(
+    connection: sqlite3.Connection,
+    payloads: list[dict[str, Any]],
+    user_id: int | None = None,
+) -> dict[str, Any]:
+    """Upsert a list of glossary term payloads. Returns a summary dict."""
+    created_ids: list[int] = []
+    updated_ids: list[int] = []
+    errors: list[dict[str, Any]] = []
+
+    for index, payload in enumerate(payloads):
+        slug = payload.get("slug")
+        if slug:
+            slug = normalize_slug(str(slug))
+        if not slug:
+            term_text = str(payload.get("term") or "").strip()
+            slug = normalize_slug(term_text) if term_text else None
+
+        existing = None
+        if slug:
+            existing = connection.execute(
+                "SELECT id FROM glossary_terms WHERE slug = ?", (slug,)
+            ).fetchone()
+
+        try:
+            if existing:
+                term_id = existing["id"]
+                update_glossary_term(connection, term_id, payload, user_id=user_id)
+                updated_ids.append(term_id)
+            else:
+                term = create_glossary_term(connection, payload, user_id=user_id)
+                if term:
+                    created_ids.append(term["id"])
+        except Exception as exc:
+            errors.append({"index": index, "slug": slug, "error": str(exc)})
+
+    return {"created": created_ids, "updated": updated_ids, "errors": errors}

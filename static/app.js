@@ -53,9 +53,11 @@ const translations = {
     document_editor: "Document editor",
     edit_document: "Edit document",
     new_document: "New document",
+    toggle_theme: "Toggle theme",
     reset: "Reset",
     save: "Save",
     title: "Title",
+    document_title_placeholder: "Document title",
     slug: "URL name",
     slug_help: "Use lowercase letters, numbers, and hyphens.",
     summary: "Summary",
@@ -80,6 +82,10 @@ const translations = {
     markdown: "Markdown",
     markdown_editor: "Markdown editor",
     markdown_preview: "Markdown preview",
+    preview_mode: "Preview mode",
+    preview_mode_split: "Split",
+    preview_mode_editor: "Editor",
+    preview_mode_preview: "Preview",
     preview: "Preview",
     review: "Review",
     document_preview: "Document preview",
@@ -95,6 +101,8 @@ const translations = {
     quote_placeholder: "Quote",
     done: "Done",
     close: "Close",
+    open_comments: "Open comments",
+    close_comments: "Close comments",
     draft: "Draft",
     revision_history: "Revision history",
     history_and_diff: "History and diff",
@@ -165,9 +173,27 @@ const translations = {
     restoring_revision: "Restoring revision...",
     restored_revision: "Restored as revision {id}.",
     restored: "Restored.",
+    overview: "Overview",
+    term_sections: "Term sections",
+    term_revision_list: "Term revision history",
+    restore_term_revision_confirm: "Restore term version v{version}?",
+    restored_term_revision: "Restored as version v{version}.",
+    loading_term_revisions: "Loading term history...",
+    no_term_revisions_yet: "No revisions yet.",
+    need_two_term_revisions: "At least two revisions are needed for a diff.",
+    restoring_term_revision: "Restoring...",
     loading_glossary: "Loading glossary...",
     no_glossary_terms_found: "No glossary terms found.",
     untitled_term: "Untitled term",
+    wiki_link_unresolved: "No glossary entry for \"{term}\".",
+    wiki_link_unresolved_editor: "No glossary entry for \"{term}\". Click to create.",
+    promote_to_term: "Promote selection to glossary term",
+    promote_no_selection: "Select text in the editor first.",
+    related_terms: "Related terms",
+    related_documents: "Related documents",
+    no_related_documents: "No documents reference this term yet.",
+    back_to_document: "Back to document",
+    open_term_page: "Open glossary page",
     loading_plugins: "Loading plugins...",
     no_plugins_installed: "No plugins installed.",
     no_version: "No version",
@@ -190,6 +216,81 @@ const translations = {
     attached_image: "Attached image",
     no_date: "No date",
     something_went_wrong: "Something went wrong.",
+    format_bold: "Bold",
+    format_italic: "Italic",
+    format_link: "Link",
+    format_heading: "Heading",
+    format_unordered_list: "Bulleted list",
+    format_ordered_list: "Numbered list",
+    format_quote: "Quote",
+    format_inline_code: "Inline code",
+    format_code_block: "Code block",
+    format_wiki_link: "Wiki link",
+    format_toolbar: "Formatting toolbar",
+    table_of_contents: "Contents",
+    route_not_found: "Couldn't find that page.",
+    insert_term_link: "Insert [[term]] at cursor",
+    new_term: "New term",
+    edit_term: "Edit term",
+    delete_term: "Delete term",
+    description: "Description",
+    delete_term_confirm: "Delete this term?",
+    cancel: "Cancel",
+    term: "Term",
+    term_saved: "Term saved.",
+    term_deleted: "Term deleted.",
+    aliases: "Aliases",
+    aliases_placeholder: "One alias per line",
+    aliases_help: "Alternative names that also match [[wiki links]].",
+    also_known_as: "Also known as",
+    own_tags: "Tags",
+    related_tags: "Related tags",
+    filter_documents: "Filter documents",
+    document_tree: "Document tree",
+    uncategorized: "Uncategorized",
+    no_lesson: "No lesson",
+    no_documents_in_filter: "No documents match the current filters.",
+    ribbon_home: "Home",
+    ribbon_insert: "Insert",
+    ribbon_extensions: "Extensions",
+    ribbon_view: "View",
+    editor_ribbon: "Editor ribbon",
+    format: "Format",
+    structure: "Structure",
+    blocks: "Blocks",
+    no_extensions_active: "No extensions are active.",
+    save_state_unsaved: "Unsaved changes",
+    save_state_saving: "Saving...",
+    save_state_saved: "Saved {time}",
+    empty_welcome_title: "Welcome to DocPlatform",
+    empty_welcome_subtitle: "Select a document from the list to read, or create a new one.",
+    empty_action_new: "Create document",
+    empty_action_shortcuts: "Keyboard shortcuts",
+    empty_tip_search: "Use the search box to quickly find documents.",
+    empty_tip_wiki: "Type [[term]] to link to glossary pages.",
+    empty_tip_shortcuts: "Press Ctrl+/ for keyboard shortcuts.",
+    shortcuts_title: "Keyboard shortcuts",
+    shortcuts_open_help: "Open keyboard shortcuts",
+    shortcuts_esc: "Close dialogs and drawers",
+    used_in: "Used in",
+    slug_preview_ok: "URL: {slug}",
+    slug_preview_collision: "Slug \"{slug}\" is already used by \"{conflict}\".",
+    delete_term_question: "Delete the term \"{term}\"?",
+    delete_term_used_warning: "This term is referenced by {count} document(s). Deleting it will leave those references as broken links.",
+    delete_term_type_confirm: "Type \"{term}\" to confirm deletion:",
+    delete: "Delete",
+    glossary_all_terms: "All terms",
+    bulk_import: "Bulk import",
+    bulk_import_help: "Paste a JSON array of terms. Each item needs at minimum a \"term\" field.",
+    import: "Import",
+    json: "JSON",
+    bulk_import_success: "Imported {created} new, updated {updated}.",
+    sort_term_asc: "A-Z",
+    sort_term_desc: "Z-A",
+    autolink_glossary: "Auto-link glossary",
+    view_all_terms: "View all terms",
+    filter_tag: "Tag",
+    all_tags: "All tags",
   },
   ja: {
     app_title: "文書管理",
@@ -239,9 +340,11 @@ const translations = {
     document_editor: "文書編集",
     edit_document: "文書を編集",
     new_document: "新規文書",
+    toggle_theme: "テーマ切替",
     reset: "リセット",
     save: "保存",
     title: "タイトル",
+    document_title_placeholder: "文書タイトル",
     slug: "URL名",
     slug_help: "URLに使う短い名前です。半角英数字とハイフンを使います。",
     summary: "概要",
@@ -266,6 +369,10 @@ const translations = {
     markdown: "本文",
     markdown_editor: "本文エディター",
     markdown_preview: "本文確認",
+    preview_mode: "プレビュー表示",
+    preview_mode_split: "分割表示",
+    preview_mode_editor: "エディタのみ",
+    preview_mode_preview: "プレビューのみ",
     preview: "プレビュー",
     review: "確認",
     document_preview: "文書確認",
@@ -281,6 +388,8 @@ const translations = {
     quote_placeholder: "引用文",
     done: "完了",
     close: "閉じる",
+    open_comments: "コメントを開く",
+    close_comments: "コメントを閉じる",
     draft: "下書き",
     revision_history: "改訂履歴",
     history_and_diff: "履歴と差分",
@@ -351,9 +460,27 @@ const translations = {
     restoring_revision: "改訂を復元中...",
     restored_revision: "改訂 {id} として復元しました。",
     restored: "復元しました。",
+    overview: "概要",
+    term_sections: "用語タブ",
+    term_revision_list: "用語の改訂履歴",
+    restore_term_revision_confirm: "用語をバージョン v{version} に復元しますか？",
+    restored_term_revision: "v{version} として復元しました。",
+    loading_term_revisions: "用語履歴を読み込み中...",
+    no_term_revisions_yet: "改訂はまだありません。",
+    need_two_term_revisions: "差分には 2 件以上の改訂が必要です。",
+    restoring_term_revision: "復元中...",
     loading_glossary: "用語集を読み込み中...",
     no_glossary_terms_found: "用語が見つかりません。",
     untitled_term: "無題の用語",
+    wiki_link_unresolved: "「{term}」の用語ページはまだありません。",
+    wiki_link_unresolved_editor: "「{term}」の用語ページはまだありません。クリックして作成。",
+    promote_to_term: "選択を用語に昇格",
+    promote_no_selection: "先にエディタで文字列を選択してください。",
+    related_terms: "関連用語",
+    related_documents: "関連文書",
+    no_related_documents: "この用語を参照している文書はまだありません。",
+    back_to_document: "文書へ戻る",
+    open_term_page: "用語ページを開く",
     loading_plugins: "拡張機能を読み込み中...",
     no_plugins_installed: "インストール済み拡張機能はありません。",
     no_version: "バージョンなし",
@@ -376,6 +503,80 @@ const translations = {
     attached_image: "添付画像",
     no_date: "日付なし",
     something_went_wrong: "問題が発生しました。",
+    format_bold: "太字",
+    format_italic: "斜体",
+    format_link: "リンク",
+    format_heading: "見出し",
+    format_unordered_list: "箇条書き",
+    format_ordered_list: "番号付きリスト",
+    format_quote: "引用",
+    format_inline_code: "インラインコード",
+    format_code_block: "コードブロック",
+    format_wiki_link: "用語リンク",
+    format_toolbar: "書式ツールバー",
+    table_of_contents: "目次",
+    route_not_found: "ページが見つかりませんでした。",
+    insert_term_link: "[[用語]] をカーソル位置に挿入",
+    new_term: "新規用語",
+    edit_term: "用語を編集",
+    delete_term: "用語を削除",
+    description: "説明",
+    delete_term_confirm: "この用語を削除しますか？",
+    cancel: "キャンセル",
+    term: "用語",
+    term_saved: "用語を保存しました。",
+    term_deleted: "用語を削除しました。",
+    aliases: "別名",
+    aliases_placeholder: "1 行に 1 別名",
+    aliases_help: "[[ウィキリンク]] にもマッチする別名",
+    also_known_as: "別名",
+    own_tags: "タグ",
+    related_tags: "関連タグ",
+    filter_documents: "文書を絞り込み",
+    document_tree: "文書ツリー",
+    uncategorized: "未分類",
+    no_documents_in_filter: "条件に一致する文書はありません。",
+    ribbon_home: "ホーム",
+    ribbon_insert: "挿入",
+    ribbon_extensions: "拡張機能",
+    ribbon_view: "表示",
+    editor_ribbon: "編集リボン",
+    format: "書式",
+    structure: "構造",
+    blocks: "ブロック",
+    no_extensions_active: "有効な拡張機能はありません。",
+    save_state_unsaved: "未保存の変更",
+    save_state_saving: "保存中...",
+    save_state_saved: "{time} に保存",
+    empty_welcome_title: "DocPlatform へようこそ",
+    empty_welcome_subtitle: "左の一覧から文書を選ぶか、新規作成してください。",
+    empty_action_new: "文書を作成",
+    empty_action_shortcuts: "ショートカット一覧",
+    empty_tip_search: "検索ボックスから文書をすぐに見つけられます。",
+    empty_tip_wiki: "[[用語]] と書くと用語ページにリンクします。",
+    empty_tip_shortcuts: "Ctrl+/ でショートカット一覧を表示。",
+    shortcuts_title: "キーボードショートカット",
+    shortcuts_open_help: "ショートカット一覧を開く",
+    shortcuts_esc: "ダイアログとドロワーを閉じる",
+    used_in: "参照している文書",
+    slug_preview_ok: "URL: {slug}",
+    slug_preview_collision: "「{slug}」は「{conflict}」で既に使われています。",
+    delete_term_question: "用語「{term}」を削除しますか？",
+    delete_term_used_warning: "この用語は {count} 件の文書から参照されています。削除すると赤リンクになります。",
+    delete_term_type_confirm: "確認のため「{term}」と入力してください:",
+    delete: "削除",
+    glossary_all_terms: "全用語",
+    bulk_import: "一括取り込み",
+    bulk_import_help: "用語の JSON 配列を貼り付けてください。各アイテムには最低限 \"term\" フィールドが必要です。",
+    import: "取り込む",
+    json: "JSON",
+    bulk_import_success: "新規 {created} 件、更新 {updated} 件を取り込みました。",
+    sort_term_asc: "あいうえお順",
+    sort_term_desc: "降順",
+    autolink_glossary: "用語の自動リンク",
+    view_all_terms: "全用語を表示",
+    filter_tag: "タグ",
+    all_tags: "すべてのタグ",
   },
 };
 
@@ -420,6 +621,10 @@ const CORE_INSERT_BLOCKS = [
 
 let frontendPlugins = [];
 let frontendPluginTranslations = { en: {}, ja: {} };
+let suppressNextHashChange = false;
+let pendingHashRoute = null;
+const collapsedTreeGroups = new Set();
+const collapsedTreeSubgroups = new Set();
 const localizedTaxonomyNames = {
   ja: {
     general: "未分類",
@@ -445,11 +650,28 @@ const state = {
   lessons: [],
   tags: [],
   selectedTerm: null,
+  editingTerm: null,
+  deleteTermPending: null,
+  activeTermTab: "overview",
+  termRevisions: [],
+  selectedTermRevision: null,
+  viewerContent: "document",
+  glossaryIndexFilter: { q: "", tag: "", sort: "term_asc" },
+  settings: { glossary_autolink: "off" },
   plugins: [],
   activeMode: "viewer",
   activeCreatorView: "edit",
+  previewMode: "split",
+  activeRibbonTab: "home",
   activePanel: "glossary",
+  commentsOpen: false,
   language: getInitialLanguage(),
+  avatarMenuOpen: false,
+  railFilterOpen: false,
+  theme: "light",
+  editorDirty: false,
+  editorSaving: false,
+  lastSavedAt: null,
 };
 
 const elements = {
@@ -471,6 +693,21 @@ const elements = {
   documentSummary: document.querySelector("#document-summary"),
   viewerPluginPanels: document.querySelector("#viewer-plugin-panels"),
   documentMarkdown: document.querySelector("#document-markdown"),
+  documentToc: document.querySelector("#document-toc"),
+  documentTocList: document.querySelector("#document-toc-list"),
+  documentRelatedTerms: document.querySelector("#document-related-terms"),
+  documentRelatedTermsChips: document.querySelector("#document-related-terms-chips"),
+  termDetail: document.querySelector("#term-detail"),
+  termDetailTitle: document.querySelector("#term-detail-title"),
+  termDetailTags: document.querySelector("#term-detail-tags"),
+  termDetailDescription: document.querySelector("#term-detail-description"),
+  termRelatedDocumentsList: document.querySelector("#term-related-documents-list"),
+  termRelatedDocumentsStatus: document.querySelector("#term-related-documents-status"),
+  termRevisionList: document.querySelector("#term-revision-list"),
+  termDiffTarget: document.querySelector("#term-diff-target"),
+  termDiffAgainst: document.querySelector("#term-diff-against"),
+  termDiffStatus: document.querySelector("#term-diff-status"),
+  termDiffOutput: document.querySelector("#term-diff-output"),
   creatorPreviewContext: document.querySelector("#creator-preview-context"),
   creatorPreviewTitle: document.querySelector("#creator-preview-title"),
   creatorPreviewMeta: document.querySelector("#creator-preview-meta"),
@@ -479,6 +716,9 @@ const elements = {
   creatorPreviewMarkdown: document.querySelector("#creator-preview-markdown"),
   creatorDocumentLabel: document.querySelector("#creator-document-label"),
   creatorSaveState: document.querySelector("#creator-save-state"),
+  commentsPanel: document.querySelector("#comments-panel"),
+  commentsToggle: document.querySelector('[data-action="toggle-comments"]'),
+  commentsCountBadge: document.querySelector("#comments-count-badge"),
   commentsStatus: document.querySelector("#comments-status"),
   commentList: document.querySelector("#comment-list"),
   commentForm: document.querySelector("#comment-form"),
@@ -507,17 +747,24 @@ const elements = {
   pluginStatus: document.querySelector("#plugin-status"),
   pluginList: document.querySelector("#plugin-list"),
   loginForm: document.querySelector("#login-form"),
-  sessionLabel: document.querySelector("#session-label"),
+  loginDialog: document.querySelector("#login-dialog"),
+  loginError: document.querySelector("#login-error"),
+  avatarMenu: document.querySelector("#avatar-menu"),
+  avatarInitials: document.querySelector("#avatar-initials"),
+  avatarName: document.querySelector("#avatar-name"),
+  avatarMenuName: document.querySelector("#avatar-menu-name"),
+  avatarMenuRole: document.querySelector("#avatar-menu-role"),
   languageSelect: document.querySelector("#language-select"),
   metadataDialog: document.querySelector("#metadata-dialog"),
+  termEditorDialog: document.querySelector("#term-editor-dialog"),
   metadataCategory: document.querySelector("#metadata-category"),
   metadataLesson: document.querySelector("#metadata-lesson"),
   metadataTags: document.querySelector("#metadata-tags"),
   metadataNewCategory: document.querySelector("#metadata-new-category"),
   metadataNewLesson: document.querySelector("#metadata-new-lesson"),
   metadataNewTag: document.querySelector("#metadata-new-tag"),
-  insertMenu: document.querySelector("#insert-menu"),
-  insertTrigger: document.querySelector('[data-action="toggle-insert-menu"]'),
+  editorLivePreview: document.querySelector("#editor-live-preview"),
+  writingStage: document.querySelector(".writing-stage"),
 };
 
 let dateFormatter = createDateFormatter();
@@ -534,20 +781,115 @@ applyTranslations();
 boot();
 
 async function boot() {
+  setTheme(getInitialTheme());
   bindEvents();
+  window.addEventListener("hashchange", onHashChange);
   elements.shell.dataset.mobileView = "documents";
+  setCommentsOpen(false);
   setAppMode(state.activeMode);
   setCreatorView(state.activeCreatorView);
+  setPreviewMode(state.previewMode);
+  setRibbonTab(state.activeRibbonTab);
+  renderInsertBlocks();
   renderRoleAwareControls();
+  renderSaveState();
   await loadSession();
   if (state.session) {
-    await Promise.allSettled([loadDocuments(), loadGlossary(), loadTaxonomy()]);
+    await loadSettings();
+    const initial = parseHashRoute();
+    const hasInitialRoute = Boolean(initial);
+    await Promise.allSettled([
+      loadDocuments("", { skipAutoSelect: hasInitialRoute }),
+      loadGlossary(),
+      loadTaxonomy(),
+    ]);
+    if (hasInitialRoute) {
+      await applyHashRoute(initial);
+    }
   } else {
+    // Defer hash route application until after login
+    pendingHashRoute = parseHashRoute();
     renderDocumentList();
     renderGlossaryList();
     renderTaxonomyControls();
     renderDocumentFilterControls();
   }
+}
+
+function parseHashRoute() {
+  const hash = window.location.hash;
+  if (!hash || hash === "#" || hash === "#/") return null;
+  // Remove leading '#' then split on '/'
+  const path = hash.replace(/^#\/?/, "");
+  const parts = path.split("/").filter(Boolean);
+  if (!parts.length) return null;
+  const type = parts[0];
+  // Glossary index: #/glossary (no slug required)
+  if (type === "glossary" && parts.length === 1) {
+    return { type: "glossary", slug: "" };
+  }
+  if (type !== "doc" && type !== "term") return null;
+  if (parts.length < 2) return null;
+  const slug = decodeURIComponent(parts.slice(1).join("/").replace(/\/+$/, ""));
+  if (!slug) return null;
+  return { type, slug };
+}
+
+function updateHashRoute({ type, slug }, { replace = false } = {}) {
+  suppressNextHashChange = true;
+  let hash = "#/" + type;
+  if (slug) hash += "/" + encodeURIComponent(slug);
+  if (replace) {
+    history.replaceState(null, "", location.pathname + location.search + hash);
+  } else {
+    history.pushState(null, "", location.pathname + location.search + hash);
+  }
+}
+
+async function applyHashRoute(route) {
+  if (!route) return;
+  if (route.type === "glossary") {
+    showGlossaryIndex();
+    return;
+  }
+  if (route.type === "doc") {
+    let doc = state.documents.find((d) => d.slug === route.slug);
+    if (!doc) {
+      // Fallback: search API
+      try {
+        const params = new URLSearchParams({ q: route.slug, type: "document", page_size: "5" });
+        const payload = await request(`/api/search?${params}`);
+        const results = listItems(payload).map(normalizeDocument);
+        doc = results.find((d) => d.slug === route.slug);
+        if (doc && !state.documents.some((d) => d.slug === doc.slug)) {
+          state.documents = [doc, ...state.documents];
+          renderDocumentList();
+        }
+      } catch (_) {
+        // ignore search errors; fall through to not-found
+      }
+    }
+    if (!doc) {
+      setStatus(elements.documentListStatus, t("route_not_found"), true);
+      return;
+    }
+    await selectDocument(doc.id, { skipHashUpdate: true });
+  } else if (route.type === "term") {
+    const term = state.glossary.find((term) => term.slug === route.slug);
+    if (!term) {
+      setStatus(elements.glossaryStatus, t("route_not_found"), true);
+      return;
+    }
+    await selectTerm(term.id, { focusViewer: true, skipHashUpdate: true });
+  }
+}
+
+function onHashChange() {
+  if (suppressNextHashChange) {
+    suppressNextHashChange = false;
+    return;
+  }
+  applyHashRoute(parseHashRoute());
 }
 
 function bindEvents() {
@@ -565,17 +907,36 @@ function bindEvents() {
     elements.documentTagFilter,
     elements.documentSort,
   ].forEach((control) => {
-    control.addEventListener("change", () => loadDocuments(elements.searchInput.value.trim()));
+    control.addEventListener("change", () => {
+      updateFilterActiveDot();
+      loadDocuments(elements.searchInput.value.trim());
+    });
   });
   elements.editorForm.addEventListener("submit", saveDocument);
+  document.querySelector("#term-editor-form")?.addEventListener("submit", submitTermForm);
   elements.editorForm.addEventListener("input", () => {
+    markEditorDirty();
     renderCreatorDraft();
     renderCreatorMetadataSummary();
   });
   elements.editorForm.addEventListener("change", () => {
+    markEditorDirty();
     renderCreatorDraft();
     renderCreatorMetadataSummary();
   });
+  elements.editorForm.elements.content_markdown.addEventListener(
+    "input",
+    debounce(renderEditorLivePreview, 300),
+  );
+  const termTextarea = document.querySelector("#term-editor-description-textarea");
+  if (termTextarea) {
+    termTextarea.addEventListener("input", debounce(renderTermEditorPreview, 300));
+  }
+  const termEditorForm = document.querySelector("#term-editor-form");
+  if (termEditorForm) {
+    termEditorForm.elements.term?.addEventListener("input", updateSlugPreview);
+    termEditorForm.elements.slug?.addEventListener("input", updateSlugPreview);
+  }
   elements.commentForm.addEventListener("submit", createComment);
   elements.commentForm.elements.target_type.addEventListener("change", () => {
     state.commentDraftTarget = null;
@@ -596,12 +957,41 @@ function bindEvents() {
   elements.documentMarkdown.addEventListener("click", captureImageCommentTarget);
   elements.glossarySearch.addEventListener("input", () => renderGlossaryList());
   elements.loginForm.addEventListener("submit", login);
+  // Bulk import form
+  document.querySelector("#bulk-import-form")?.addEventListener("submit", submitBulkImport);
+  // Glossary index filter controls
+  document.querySelector("#glossary-index-search")?.addEventListener("input", (event) => {
+    state.glossaryIndexFilter.q = event.target.value;
+    renderGlossaryIndex();
+  });
+  document.querySelector("#glossary-index-tag-filter")?.addEventListener("change", (event) => {
+    state.glossaryIndexFilter.tag = event.target.value;
+    renderGlossaryIndex();
+  });
+  document.querySelector("#glossary-index-sort")?.addEventListener("change", (event) => {
+    state.glossaryIndexFilter.sort = event.target.value;
+    renderGlossaryIndex();
+  });
   elements.languageSelect.addEventListener("change", (event) => setLanguage(event.target.value));
   document.addEventListener("click", closeInsertMenuOnOutsideClick);
+  document.addEventListener("click", closeAvatarMenuOnOutsideClick);
+  document.addEventListener("click", closeRailFilterOnOutsideClick);
   document.addEventListener("keydown", handleGlobalKeydown);
 }
 
 async function handleClick(event) {
+  const wikiLink = event.target.closest("a.wiki-link");
+  if (wikiLink) {
+    event.preventDefault();
+    if (wikiLink.dataset.termId) {
+      await selectTerm(wikiLink.dataset.termId);
+    } else if (wikiLink.classList.contains("is-missing") && hasRoleAtLeast("editor")) {
+      const target = wikiLink.dataset.wikiTarget || wikiLink.textContent || "";
+      openTermEditorForCreation(target);
+    }
+    return;
+  }
+
   const button = event.target.closest("button");
   if (!button) {
     return;
@@ -614,6 +1004,21 @@ async function handleClick(event) {
 
   if (button.dataset.creatorView) {
     setCreatorView(button.dataset.creatorView);
+    return;
+  }
+
+  if (button.dataset.ribbonTab) {
+    setRibbonTab(button.dataset.ribbonTab);
+    return;
+  }
+
+  if (button.dataset.previewMode) {
+    setPreviewMode(button.dataset.previewMode);
+    return;
+  }
+
+  if (button.dataset.formatAction) {
+    applyFormatAction(button.dataset.formatAction, button.dataset.formatTarget || "document");
     return;
   }
 
@@ -648,6 +1053,16 @@ async function handleClick(event) {
     return;
   }
 
+  if (button.dataset.termTab) {
+    setTermTab(button.dataset.termTab);
+    return;
+  }
+
+  if (button.dataset.termRevisionId) {
+    selectTermRevision(button.dataset.termRevisionId);
+    return;
+  }
+
   if (button.dataset.pluginAction) {
     await mutatePlugin(button.dataset.pluginId, button.dataset.pluginAction);
     return;
@@ -658,9 +1073,48 @@ async function handleClick(event) {
     return;
   }
 
+  if (button.dataset.action === "toggle-tree-group") {
+    const key = button.dataset.groupKey;
+    if (key) {
+      if (collapsedTreeGroups.has(key)) {
+        collapsedTreeGroups.delete(key);
+      } else {
+        collapsedTreeGroups.add(key);
+      }
+      renderDocumentList();
+    }
+    return;
+  }
+
+  if (button.dataset.action === "toggle-tree-subgroup") {
+    const key = button.dataset.subgroupKey;
+    if (key) {
+      if (collapsedTreeSubgroups.has(key)) {
+        collapsedTreeSubgroups.delete(key);
+      } else {
+        collapsedTreeSubgroups.add(key);
+      }
+      renderDocumentList();
+    }
+    return;
+  }
+
   switch (button.dataset.action) {
     case "show-documents":
       setMobileView("documents");
+      break;
+    case "open-login":
+      openLoginDialog();
+      break;
+    case "close-login":
+      closeLoginDialog();
+      break;
+    case "toggle-avatar-menu":
+      toggleAvatarMenu();
+      break;
+    case "toggle-theme":
+      toggleTheme();
+      closeAvatarMenu();
       break;
     case "new-document":
       startNewDocument();
@@ -672,7 +1126,7 @@ async function handleClick(event) {
       closeMetadataDialog();
       break;
     case "toggle-insert-menu":
-      toggleInsertMenu();
+      // insert trigger removed — ribbon Insert tab replaces it
       break;
     case "create-category":
       await createTaxonomyItem("categories");
@@ -686,8 +1140,58 @@ async function handleClick(event) {
     case "clear-document-filters":
       clearDocumentFilters();
       break;
+    case "back-to-document":
+      showSelectedDocument();
+      break;
+    case "new-term":
+      openTermEditor(null);
+      break;
+    case "edit-term":
+      openTermEditor(state.selectedTerm);
+      break;
+    case "delete-term":
+      await confirmDeleteTerm();
+      break;
+    case "close-term-editor":
+      closeTermEditor();
+      break;
+    case "close-delete-term":
+      closeDeleteTermDialog();
+      break;
+    case "confirm-delete-term":
+      await executeDeleteTerm();
+      break;
+    case "toggle-rail-filters":
+      setRailFilterOpen(!state.railFilterOpen);
+      break;
     case "toggle-aux":
       elements.shell.dataset.auxOpen = elements.shell.dataset.auxOpen !== "true";
+      break;
+    case "insert-glossary-term-link": {
+      const termName = button.dataset.termName || "";
+      if (state.activeMode !== "creator") {
+        setAppMode("creator");
+        setCreatorView("edit");
+      } else {
+        setCreatorView("edit");
+      }
+      const textarea = elements.editorForm.elements.content_markdown;
+      const linkText = `[[${termName}]]`;
+      const start = textarea.selectionStart ?? textarea.value.length;
+      const end = textarea.selectionEnd ?? textarea.value.length;
+      textarea.setRangeText(linkText, start, end, "end");
+      textarea.dispatchEvent(new Event("input", { bubbles: true }));
+      textarea.focus();
+      if (window.innerWidth <= 760) {
+        setMobileView("workspace");
+      }
+      break;
+    }
+    case "toggle-comments":
+      setCommentsOpen(!state.commentsOpen);
+      break;
+    case "close-comments":
+      setCommentsOpen(false);
       break;
     case "reset-editor":
       hydrateEditor(state.editorSeed || blankDocument());
@@ -701,6 +1205,9 @@ async function handleClick(event) {
       if (!captureTextCommentTarget()) {
         setStatus(elements.commentsStatus, t("select_document_text_first"), true);
       }
+      break;
+    case "promote-to-term":
+      promoteSelectionToTerm();
       break;
     case "upload-image":
       await uploadImageAttachment();
@@ -716,11 +1223,36 @@ async function handleClick(event) {
     case "restore-revision":
       await restoreRevision();
       break;
+    case "load-term-diff":
+      await loadTermDiff();
+      break;
+    case "restore-term-revision":
+      await restoreTermRevision();
+      break;
     case "refresh-plugins":
       await loadPlugins();
       break;
     case "logout":
+      closeAvatarMenu();
       await logout();
+      break;
+    case "show-shortcuts":
+      openShortcutsDialog();
+      break;
+    case "close-shortcuts":
+      closeShortcutsDialog();
+      break;
+    case "show-glossary-index":
+      showGlossaryIndex();
+      break;
+    case "open-bulk-import":
+      openBulkImportDialog();
+      break;
+    case "close-bulk-import":
+      closeBulkImportDialog();
+      break;
+    case "toggle-glossary-autolink":
+      await toggleGlossaryAutolink();
       break;
     default:
       break;
@@ -798,6 +1330,10 @@ async function loadSession() {
 async function login(event) {
   event.preventDefault();
   const formData = new FormData(elements.loginForm);
+  if (elements.loginError) {
+    elements.loginError.textContent = "";
+    elements.loginError.classList.remove("is-error");
+  }
   try {
     state.session = await request("/api/auth/login", {
       method: "POST",
@@ -808,11 +1344,26 @@ async function login(event) {
     });
     await syncFrontendPlugins(state.session.frontend_plugins);
     elements.loginForm.reset();
+    closeLoginDialog();
     renderSession();
-    await Promise.allSettled([loadDocuments(elements.searchInput.value.trim()), loadGlossary(), loadTaxonomy()]);
+    await loadSettings();
+    // Apply a hash route that was deferred because the user was not yet signed in
+    const deferred = pendingHashRoute || parseHashRoute();
+    pendingHashRoute = null;
+    const hasDeferred = Boolean(deferred);
+    await Promise.allSettled([
+      loadDocuments(elements.searchInput.value.trim(), { skipAutoSelect: hasDeferred }),
+      loadGlossary(),
+      loadTaxonomy(),
+    ]);
+    if (hasDeferred) await applyHashRoute(deferred);
   } catch (error) {
     state.session = null;
-    renderSession(readableError(error));
+    if (elements.loginError) {
+      elements.loginError.textContent = readableError(error);
+      elements.loginError.classList.add("is-error");
+    }
+    renderSession();
   }
 }
 
@@ -836,6 +1387,9 @@ async function logout() {
   state.categories = [];
   state.lessons = [];
   state.tags = [];
+  // Clear the hash so bookmarks don't immediately re-load on next login
+  suppressNextHashChange = true;
+  history.replaceState(null, "", location.pathname);
   renderSession();
   renderDocumentList();
   renderRevisionList();
@@ -846,17 +1400,30 @@ async function logout() {
   renderComments();
 }
 
-function renderSession(errorMessage = "") {
+function renderSession() {
   const signedIn = Boolean(state.session);
   elements.shell.dataset.signedIn = String(signedIn);
-  elements.loginForm.hidden = signedIn;
-  elements.sessionLabel.textContent = signedIn
-    ? `${state.session.display_name || state.session.username} (${(state.session.roles || []).map(roleLabel).join(", ")})`
-    : errorMessage;
+  if (signedIn) {
+    const username = state.session.username || "";
+    const displayName = state.session.display_name || username;
+    const roles = (state.session.roles || []).map(roleLabel).join(", ");
+    if (elements.avatarInitials) {
+      elements.avatarInitials.textContent = (username[0] || "?").toUpperCase();
+    }
+    if (elements.avatarName) {
+      elements.avatarName.textContent = displayName;
+    }
+    if (elements.avatarMenuName) {
+      elements.avatarMenuName.textContent = displayName;
+    }
+    if (elements.avatarMenuRole) {
+      elements.avatarMenuRole.textContent = roles;
+    }
+  }
   renderRoleAwareControls();
 }
 
-async function loadDocuments(query = "") {
+async function loadDocuments(query = "", { skipAutoSelect = false } = {}) {
   setStatus(elements.documentListStatus, t("loading_documents"));
   const params = documentQueryParams(query);
   const hasSearch = query || params.has("category_id") || params.has("lesson_id") || params.has("tag");
@@ -871,16 +1438,18 @@ async function loadDocuments(query = "") {
     renderDocumentList();
     setStatus(elements.documentListStatus, state.documents.length ? "" : t("no_documents_found"));
 
-    const selectedStillVisible = state.selectedDocument
-      && state.documents.some((documentItem) => String(documentItem.id) === String(state.selectedDocument.id));
-    if (state.documents[0] && !selectedStillVisible) {
-      await selectDocument(state.documents[0].id);
-    } else if (!state.documents.length) {
-      state.selectedDocument = null;
-      state.editorSeed = null;
-      state.comments = [];
-      renderDocumentDetail();
-      renderComments();
+    if (!skipAutoSelect) {
+      const selectedStillVisible = state.selectedDocument
+        && state.documents.some((documentItem) => String(documentItem.id) === String(state.selectedDocument.id));
+      if (state.documents[0] && !selectedStillVisible) {
+        await selectDocument(state.documents[0].id);
+      } else if (!state.documents.length) {
+        state.selectedDocument = null;
+        state.editorSeed = null;
+        state.comments = [];
+        renderDocumentDetail();
+        renderComments();
+      }
     }
   } catch (error) {
     state.documents = [];
@@ -990,6 +1559,8 @@ function clearDocumentFilters() {
   elements.documentTagFilter.value = "";
   elements.documentSort.value = "updated_desc";
   elements.searchInput.value = "";
+  setRailFilterOpen(false);
+  updateFilterActiveDot();
   loadDocuments();
 }
 
@@ -1058,23 +1629,179 @@ function renderDocumentList() {
   elements.documentCount.textContent = state.documentTotal
     ? t("total_count", { count: state.documentTotal })
     : "";
-  elements.documentList.replaceChildren(
-    ...state.documents.map((documentItem) => {
-      const item = document.createElement("li");
-      const button = document.createElement("button");
-      button.type = "button";
-      button.dataset.documentId = documentItem.id;
-      button.classList.toggle("is-active", documentItem.id === state.selectedDocument?.id);
-      button.innerHTML = `
-        <span class="list-title">${escapeHtml(documentItem.title || t("untitled_document"))}</span>
-        <span class="list-organization">${escapeHtml(documentOrganizationLabel(documentItem))}</span>
-        <span class="list-summary">${escapeHtml(documentItem.summary || t("no_summary"))}</span>
-        <span class="list-meta">${escapeHtml(formatDate(documentItem.updated_at))}</span>
-      `;
-      item.append(button);
-      return item;
-    }),
-  );
+
+  const list = elements.documentList;
+  if (!list) return;
+
+  if (!state.documents.length) {
+    const msg = document.createElement("p");
+    msg.className = "status-line";
+    msg.textContent = t("no_documents_in_filter");
+    list.replaceChildren(msg);
+    updateFilterActiveDot();
+    return;
+  }
+
+  // Build: category_key → { category, lessons: Map<lesson_key, { lesson, docs }>, directDocs: [] }
+  const NONE_KEY = "_none";
+  const groups = new Map(); // category_key → group
+
+  function ensureGroup(catKey, category) {
+    if (!groups.has(catKey)) {
+      groups.set(catKey, { category, lessons: new Map(), directDocs: [] });
+    }
+    return groups.get(catKey);
+  }
+
+  for (const doc of state.documents) {
+    const catKey = doc.category_id ? String(doc.category_id) : NONE_KEY;
+    const category = doc.category || null;
+    const group = ensureGroup(catKey, category);
+
+    if (doc.lesson_id) {
+      const lessonKey = String(doc.lesson_id);
+      if (!group.lessons.has(lessonKey)) {
+        group.lessons.set(lessonKey, { lesson: doc.lesson || null, docs: [] });
+      }
+      group.lessons.get(lessonKey).docs.push(doc);
+    } else {
+      group.directDocs.push(doc);
+    }
+  }
+
+  // Move NONE_KEY group to end if it exists
+  const noneGroup = groups.get(NONE_KEY);
+  if (noneGroup) {
+    groups.delete(NONE_KEY);
+    groups.set(NONE_KEY, noneGroup);
+  }
+
+  function makeChevron() {
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.setAttribute("class", "chevron");
+    svg.setAttribute("viewBox", "0 0 24 24");
+    svg.setAttribute("fill", "none");
+    svg.setAttribute("stroke", "currentColor");
+    svg.setAttribute("stroke-width", "2");
+    svg.setAttribute("stroke-linecap", "round");
+    svg.setAttribute("stroke-linejoin", "round");
+    svg.setAttribute("aria-hidden", "true");
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    path.setAttribute("points", "6 9 12 15 18 9");
+    svg.appendChild(path);
+    return svg;
+  }
+
+  function makeDocButton(doc) {
+    const btn = document.createElement("button");
+    btn.type = "button";
+    btn.className = "tree-doc";
+    btn.dataset.documentId = doc.id;
+    btn.classList.toggle("is-active", String(doc.id) === String(state.selectedDocument?.id));
+
+    const titleSpan = document.createElement("span");
+    titleSpan.className = "tree-doc-title";
+    titleSpan.textContent = doc.title || t("untitled_document");
+
+    btn.appendChild(titleSpan);
+
+    if (doc.summary) {
+      const metaSpan = document.createElement("span");
+      metaSpan.className = "tree-doc-meta";
+      metaSpan.textContent = doc.summary;
+      btn.appendChild(metaSpan);
+    }
+
+    return btn;
+  }
+
+  const groupNodes = [];
+
+  for (const [catKey, group] of groups) {
+    const groupEl = document.createElement("div");
+    groupEl.className = "tree-group";
+    groupEl.dataset.groupKey = catKey;
+    const isGroupCollapsed = collapsedTreeGroups.has(catKey);
+    if (isGroupCollapsed) groupEl.dataset.collapsed = "true";
+
+    // Group toggle button
+    const toggleBtn = document.createElement("button");
+    toggleBtn.type = "button";
+    toggleBtn.className = "tree-group-toggle";
+    toggleBtn.dataset.action = "toggle-tree-group";
+    toggleBtn.dataset.groupKey = catKey;
+
+    const chevron = makeChevron();
+    const labelSpan = document.createElement("span");
+    if (catKey === NONE_KEY) {
+      labelSpan.textContent = t("uncategorized");
+    } else {
+      labelSpan.textContent = displayName(group.category) || t("uncategorized");
+    }
+
+    toggleBtn.append(chevron, labelSpan);
+    groupEl.appendChild(toggleBtn);
+
+    // Group body
+    const bodyEl = document.createElement("div");
+    bodyEl.className = "tree-group-body";
+
+    // Render lessons (subgroups)
+    for (const [lessonKey, { lesson, docs }] of group.lessons) {
+      const subgroupKey = `${catKey}::${lessonKey}`;
+      const subEl = document.createElement("div");
+      subEl.className = "tree-subgroup";
+      subEl.dataset.subgroupKey = subgroupKey;
+      const isSubCollapsed = collapsedTreeSubgroups.has(subgroupKey);
+      if (isSubCollapsed) subEl.dataset.collapsed = "true";
+
+      const subToggle = document.createElement("button");
+      subToggle.type = "button";
+      subToggle.className = "tree-subgroup-toggle";
+      subToggle.dataset.action = "toggle-tree-subgroup";
+      subToggle.dataset.subgroupKey = subgroupKey;
+
+      const subChevron = makeChevron();
+      const subLabel = document.createElement("span");
+      subLabel.textContent = displayName(lesson) || t("no_lesson");
+      subToggle.append(subChevron, subLabel);
+      subEl.appendChild(subToggle);
+
+      const subBody = document.createElement("div");
+      subBody.className = "tree-subgroup-body";
+      for (const doc of docs) {
+        subBody.appendChild(makeDocButton(doc));
+      }
+      subEl.appendChild(subBody);
+      bodyEl.appendChild(subEl);
+    }
+
+    // Render direct docs (no lesson)
+    for (const doc of group.directDocs) {
+      bodyEl.appendChild(makeDocButton(doc));
+    }
+
+    groupEl.appendChild(bodyEl);
+    groupNodes.push(groupEl);
+  }
+
+  list.replaceChildren(...groupNodes);
+  updateFilterActiveDot();
+}
+
+function hasActiveFilter() {
+  const catFilter = elements.documentCategoryFilter?.value;
+  const lessonFilter = elements.documentLessonFilter?.value;
+  const tagFilter = elements.documentTagFilter?.value;
+  const sortFilter = elements.documentSort?.value;
+  return Boolean(catFilter || lessonFilter || tagFilter || (sortFilter && sortFilter !== "updated_desc"));
+}
+
+function updateFilterActiveDot() {
+  const dot = document.querySelector("#rail-filter-active-dot");
+  if (dot) {
+    dot.hidden = !hasActiveFilter();
+  }
 }
 
 function documentOrganizationLabel(documentItem) {
@@ -1086,7 +1813,7 @@ function documentOrganizationLabel(documentItem) {
   return [location || t("unfiled"), tags].filter(Boolean).join(" · ");
 }
 
-async function selectDocument(id) {
+async function selectDocument(id, { skipHashUpdate = false } = {}) {
   setStatus(elements.documentListStatus, t("loading_document"));
   try {
     const payload = await request(`/api/documents/${encodeURIComponent(id)}`);
@@ -1094,27 +1821,59 @@ async function selectDocument(id) {
     state.editorSeed = structuredCloneSafe(state.selectedDocument);
     state.comments = [];
     state.commentDraftTarget = null;
+    state.viewerContent = "document";
+    state.editorDirty = false;
+    state.editorSaving = false;
+    state.lastSavedAt = state.selectedDocument.updated_at || null;
+    setCommentsOpen(false);
     renderDocumentDetail();
+    renderTermDetail();
     renderComments();
     hydrateEditor(state.selectedDocument);
     renderDocumentList();
+    renderSaveState();
     setStatus(elements.documentListStatus, "");
+    if (!skipHashUpdate && state.selectedDocument?.slug) {
+      updateHashRoute({ type: "doc", slug: state.selectedDocument.slug });
+    }
     await Promise.allSettled([loadRevisions(id), loadComments(id)]);
   } catch (error) {
     setStatus(elements.documentListStatus, readableError(error), true);
   }
 }
 
+function showSelectedDocument() {
+  state.viewerContent = "document";
+  renderDocumentDetail();
+  renderTermDetail();
+  if (state.selectedDocument?.slug) {
+    updateHashRoute({ type: "doc", slug: state.selectedDocument.slug });
+  }
+}
+
 function renderDocumentDetail() {
   const documentItem = state.selectedDocument;
-  elements.documentEmpty.hidden = Boolean(documentItem);
-  elements.documentDetail.hidden = !documentItem;
+  const showingDocument =
+    state.viewerContent === "document" && Boolean(documentItem);
+  elements.documentEmpty.hidden =
+    Boolean(documentItem) || state.viewerContent === "term" || state.viewerContent === "glossary";
+  elements.documentDetail.hidden = !showingDocument;
+  // Hide glossary index when showing a document or nothing specific
+  const glossaryIndexEl = document.querySelector("#glossary-index");
+  if (glossaryIndexEl) {
+    glossaryIndexEl.hidden = state.viewerContent !== "glossary";
+  }
   if (!documentItem) {
     elements.viewerPluginPanels.replaceChildren();
     state.commentTargetOptions.images = [];
     state.commentTargetOptions.mermaidBlocks = [];
     replaceTargetOptions(elements.commentImageTarget, []);
     replaceTargetOptions(elements.commentMermaidTarget, []);
+    renderDocumentRelatedTerms(null);
+    if (elements.documentToc) {
+      elements.documentToc.hidden = true;
+      elements.documentTocList.replaceChildren();
+    }
     return;
   }
 
@@ -1128,10 +1887,199 @@ function renderDocumentDetail() {
     chip(t("updated_at", { date: formatDate(documentItem.updated_at) })),
     ...(documentItem.tags || []).map((tag) => chip(displayName(tag))),
   );
+  renderDocumentRelatedTerms(documentItem);
   renderPluginDetailPanels(elements.viewerPluginPanels, documentItem, "viewer");
   renderMarkdown(elements.documentMarkdown, documentItem.content_markdown);
+  renderDocumentToc(elements.documentMarkdown);
   refreshCommentTargetOptions();
   updateCommentTargetControls();
+}
+
+function renderDocumentRelatedTerms(documentItem) {
+  if (!elements.documentRelatedTerms) return;
+  if (!documentItem) {
+    elements.documentRelatedTerms.hidden = true;
+    elements.documentRelatedTermsChips.replaceChildren();
+    return;
+  }
+  const matches = collectReferencedTerms(documentItem.content_markdown || "");
+  if (!matches.length) {
+    elements.documentRelatedTerms.hidden = true;
+    elements.documentRelatedTermsChips.replaceChildren();
+    return;
+  }
+  elements.documentRelatedTerms.hidden = false;
+  elements.documentRelatedTermsChips.replaceChildren(
+    ...matches.map((term) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "chip term-chip";
+      button.dataset.termId = term.id;
+      button.textContent = term.term || t("untitled_term");
+      return button;
+    }),
+  );
+}
+
+function collectReferencedTerms(markdown) {
+  if (!markdown) return [];
+  const seen = new Set();
+  const matches = [];
+  const pattern = /\[\[([^\]|\n]+?)(?:\|[^\]\n]+)?\]\]/g;
+  let match = pattern.exec(markdown);
+  while (match) {
+    const target = (match[1] || "").trim().toLowerCase();
+    if (target && !seen.has(target)) {
+      seen.add(target);
+      const term = resolveGlossaryTerm(target);
+      if (term) matches.push(term);
+    }
+    match = pattern.exec(markdown);
+  }
+  return matches;
+}
+
+function slugify(text) {
+  return text
+    .toLowerCase()
+    .replace(/[^a-z0-9぀-ヿ一-鿿]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    || "section";
+}
+
+function renderDocumentToc(rootElement) {
+  if (!elements.documentToc || !elements.documentTocList) return;
+
+  const headings = Array.from(rootElement.querySelectorAll("h1, h2, h3"));
+  if (headings.length < 2) {
+    elements.documentToc.hidden = true;
+    elements.documentTocList.replaceChildren();
+    return;
+  }
+
+  // Assign stable IDs to headings that don't already have one
+  const seenSlugs = new Map();
+  headings.forEach((heading) => {
+    if (!heading.id) {
+      const base = slugify(heading.textContent);
+      const count = seenSlugs.get(base) ?? 0;
+      seenSlugs.set(base, count + 1);
+      heading.id = count === 0 ? base : `${base}-${count}`;
+    }
+  });
+
+  // Build list items
+  const items = headings.map((heading) => {
+    const level = parseInt(heading.tagName[1], 10);
+    const li = document.createElement("li");
+    li.className = "document-toc-item";
+    li.dataset.level = String(level);
+    const a = document.createElement("a");
+    a.href = `#${heading.id}`;
+    a.textContent = heading.textContent;
+    a.addEventListener("click", (event) => {
+      event.preventDefault();
+      heading.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    li.appendChild(a);
+    return li;
+  });
+
+  elements.documentTocList.replaceChildren(...items);
+  elements.documentToc.hidden = false;
+}
+
+function renderTermDetail() {
+  const term = state.selectedTerm;
+  const showingTerm = state.viewerContent === "term" && Boolean(term);
+  if (!elements.termDetail) return;
+  elements.termDetail.hidden = !showingTerm;
+  // Also update glossary index visibility when switching to term view
+  const glossaryIndexEl = document.querySelector("#glossary-index");
+  if (glossaryIndexEl) {
+    glossaryIndexEl.hidden = state.viewerContent !== "glossary";
+  }
+  const backButton = document.querySelector("#term-back-button");
+  if (backButton) {
+    backButton.hidden = !state.selectedDocument;
+  }
+  if (!showingTerm) {
+    if (elements.termDetailTags) elements.termDetailTags.replaceChildren();
+    if (elements.termDetailDescription) elements.termDetailDescription.replaceChildren();
+    if (elements.termRelatedDocumentsList) elements.termRelatedDocumentsList.replaceChildren();
+    return;
+  }
+  // Sync tab display state
+  setTermTab(state.activeTermTab);
+
+  elements.termDetailTitle.textContent = term.term || t("untitled_term");
+
+  // Build meta row: own tags + related_tags + aliases
+  const metaChildren = [];
+  const ownTags = term.tags || [];
+  if (ownTags.length) {
+    const ownTagsLabel = document.createElement("span");
+    ownTagsLabel.className = "meta-label muted";
+    ownTagsLabel.textContent = t("own_tags") + ":";
+    metaChildren.push(ownTagsLabel);
+    ownTags.forEach((tag) => metaChildren.push(chip(displayName(tag))));
+  }
+  const relatedTags = term.related_tags || [];
+  if (relatedTags.length) {
+    const relatedTagsLabel = document.createElement("span");
+    relatedTagsLabel.className = "meta-label muted";
+    relatedTagsLabel.textContent = (ownTags.length ? " " : "") + t("related_tags") + ":";
+    metaChildren.push(relatedTagsLabel);
+    relatedTags.forEach((tag) => metaChildren.push(chip(displayName(tag))));
+  }
+  const aliases = term.aliases || [];
+  if (aliases.length) {
+    const aliasLabel = document.createElement("span");
+    aliasLabel.className = "meta-label muted";
+    aliasLabel.textContent = (metaChildren.length ? " " : "") + t("also_known_as") + ":";
+    metaChildren.push(aliasLabel);
+    aliases.forEach((a) => {
+      const aliasChip = chip(a.alias || a.alias_slug || "");
+      metaChildren.push(aliasChip);
+    });
+  }
+  elements.termDetailTags.replaceChildren(...metaChildren);
+
+  renderMarkdown(elements.termDetailDescription, term.description_markdown || "");
+
+  const relatedDocs = term.related_documents || [];
+  if (!relatedDocs.length) {
+    setStatus(elements.termRelatedDocumentsStatus, t("no_related_documents"));
+    elements.termRelatedDocumentsList.replaceChildren();
+    return;
+  }
+  setStatus(elements.termRelatedDocumentsStatus, "");
+  elements.termRelatedDocumentsList.replaceChildren(
+    ...relatedDocs.map((doc) => {
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.documentId = doc.id;
+      button.className = "related-document-card";
+      const title = document.createElement("span");
+      title.className = "related-document-title";
+      title.textContent = doc.title || t("untitled_document");
+      const context = document.createElement("span");
+      context.className = "related-document-context";
+      context.textContent = [
+        displayName(doc.category),
+        displayName(doc.lesson),
+      ].filter(Boolean).join(" / ");
+      const summary = document.createElement("span");
+      summary.className = "related-document-summary";
+      summary.textContent = doc.summary || "";
+      button.append(title);
+      if (context.textContent) button.append(context);
+      if (summary.textContent) button.append(summary);
+      item.append(button);
+      return item;
+    }),
+  );
 }
 
 function startNewDocument() {
@@ -1143,10 +2091,14 @@ function startNewDocument() {
   state.comments = [];
   state.commentDraftTarget = null;
   state.revisions = [];
+  state.editorDirty = false;
+  state.editorSaving = false;
+  state.lastSavedAt = null;
   renderDocumentDetail();
   renderDocumentList();
   renderRevisionList();
   hydrateEditor(state.editorSeed);
+  renderSaveState();
   setAppMode("creator");
   setCreatorView("edit");
   setMobileView("workspace");
@@ -1163,6 +2115,8 @@ function hydrateEditor(documentItem) {
   hydratePluginEditors(documentItem);
   renderCreatorDraft();
   renderCreatorMetadataSummary();
+  renderEditorLivePreview();
+  renderSaveState();
   setStatus(elements.editorStatus, "");
   setStatus(elements.attachmentStatus, documentItem.id ? "" : t("save_before_upload"));
   updateAttachmentControls();
@@ -1179,9 +2133,6 @@ function renderCreatorDraft() {
 
 function renderCreatorMetadataSummary(documentItem = documentFromEditorDraft()) {
   elements.creatorDocumentLabel.textContent = documentItem.title || t("untitled_document");
-  elements.creatorSaveState.textContent = documentItem.id
-    ? t("updated_at", { date: formatDate(documentItem.updated_at) })
-    : t("draft");
 }
 
 function documentFromEditorDraft() {
@@ -1234,37 +2185,32 @@ function closeMetadataDialog() {
 }
 
 function toggleInsertMenu() {
-  setInsertMenuOpen(elements.insertMenu.hidden);
+  // insert menu removed — no-op (ribbon Insert tab replaces it)
 }
 
-function setInsertMenuOpen(open) {
-  elements.insertMenu.hidden = !open;
-  elements.insertTrigger?.setAttribute("aria-expanded", String(open));
-  if (open) {
-    elements.insertMenu.querySelector("button")?.focus();
-  }
+function setInsertMenuOpen(_open) {
+  // insert menu removed — no-op (ribbon Insert tab replaces it)
 }
 
 function renderInsertMenu() {
-  elements.insertMenu.replaceChildren(
-    ...getAvailableInsertBlocks().map((block) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.dataset.insertKind = block.id;
+  // insert menu removed — delegate to ribbon block buttons
+  renderInsertBlocks();
+}
 
-      const icon = document.createElement("i");
-      icon.dataset.lucide = block.icon;
-      icon.setAttribute("aria-hidden", "true");
-
-      const label = document.createElement("span");
-      label.dataset.i18n = block.labelKey;
-      label.textContent = t(block.labelKey);
-
-      button.append(icon, label);
-      return button;
+function renderInsertBlocks() {
+  const host = document.querySelector("#ribbon-insert-blocks");
+  if (!host) return;
+  const blocks = getAvailableInsertBlocks();
+  host.replaceChildren(
+    ...blocks.map((block) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "ribbon-block-button";
+      btn.dataset.insertKind = block.id;
+      btn.textContent = t(block.labelKey || block.id);
+      return btn;
     }),
   );
-  refreshIcons();
 }
 
 function getAvailableInsertBlocks() {
@@ -1274,23 +2220,198 @@ function getAvailableInsertBlocks() {
   ];
 }
 
-function closeInsertMenuOnOutsideClick(event) {
-  if (elements.insertMenu.hidden) {
+function closeInsertMenuOnOutsideClick(_event) {
+  // insert menu removed — no-op (ribbon Insert tab replaces it)
+}
+
+function closeAvatarMenuOnOutsideClick(event) {
+  if (!state.avatarMenuOpen) {
     return;
   }
-  if (event.target.closest("#insert-menu") || event.target.closest('[data-action="toggle-insert-menu"]')) {
+  if (event.target.closest("#avatar-menu") || event.target.closest('[data-action="toggle-avatar-menu"]')) {
     return;
   }
-  setInsertMenuOpen(false);
+  closeAvatarMenu();
+}
+
+function openLoginDialog() {
+  if (!elements.loginDialog) return;
+  if (elements.loginError) {
+    elements.loginError.textContent = "";
+    elements.loginError.classList.remove("is-error");
+  }
+  elements.loginForm.reset();
+  elements.loginDialog.showModal();
+}
+
+function closeLoginDialog() {
+  if (!elements.loginDialog) return;
+  elements.loginDialog.close();
+}
+
+function toggleAvatarMenu() {
+  if (state.avatarMenuOpen) {
+    closeAvatarMenu();
+  } else {
+    openAvatarMenu();
+  }
+}
+
+function openAvatarMenu() {
+  state.avatarMenuOpen = true;
+  if (elements.avatarMenu) {
+    elements.avatarMenu.hidden = false;
+  }
+  const pill = document.querySelector('[data-action="toggle-avatar-menu"]');
+  if (pill) pill.setAttribute("aria-expanded", "true");
+}
+
+function closeAvatarMenu() {
+  state.avatarMenuOpen = false;
+  if (elements.avatarMenu) {
+    elements.avatarMenu.hidden = true;
+  }
+  const pill = document.querySelector('[data-action="toggle-avatar-menu"]');
+  if (pill) pill.setAttribute("aria-expanded", "false");
+}
+
+function setRailFilterOpen(open) {
+  state.railFilterOpen = Boolean(open);
+  const popover = document.querySelector("#rail-filter-popover");
+  const btn = document.querySelector('[data-action="toggle-rail-filters"]');
+  if (popover) popover.hidden = !state.railFilterOpen;
+  if (btn) btn.setAttribute("aria-expanded", String(state.railFilterOpen));
+}
+
+function closeRailFilterOnOutsideClick(event) {
+  if (!state.railFilterOpen) return;
+  if (
+    event.target.closest("#rail-filter-popover") ||
+    event.target.closest('[data-action="toggle-rail-filters"]')
+  ) return;
+  setRailFilterOpen(false);
+}
+
+const THEME_STORAGE_KEY = "doc-platform.theme";
+
+function getInitialTheme() {
+  try {
+    const stored = window.localStorage.getItem(THEME_STORAGE_KEY);
+    if (stored === "light" || stored === "dark") return stored;
+  } catch (_) {
+    // ignore
+  }
+  return window.matchMedia?.("(prefers-color-scheme: dark)").matches ? "dark" : "light";
+}
+
+function setTheme(theme) {
+  state.theme = theme;
+  document.documentElement.dataset.theme = theme;
+  try {
+    window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch (_) {
+    // ignore
+  }
+  const themeIcon = document.querySelector('[data-action="toggle-theme"] i[data-lucide]');
+  if (themeIcon) {
+    themeIcon.setAttribute("data-lucide", theme === "dark" ? "moon" : "sun");
+    if (typeof lucide !== "undefined") lucide.createIcons();
+  }
+}
+
+function toggleTheme() {
+  setTheme(state.theme === "dark" ? "light" : "dark");
+}
+
+function markEditorDirty() {
+  state.editorDirty = true;
+  renderSaveState();
+}
+
+function formatSavedTime(iso) {
+  try {
+    const d = new Date(iso);
+    return d.toLocaleTimeString(LANGUAGE_LOCALES[state.language] || "en-US", { hour: "2-digit", minute: "2-digit" });
+  } catch {
+    return "";
+  }
+}
+
+function renderSaveState() {
+  const el = elements.creatorSaveState;
+  if (!el) return;
+  el.classList.remove("is-saving", "is-dirty", "is-saved", "is-idle");
+  if (state.editorSaving) {
+    el.textContent = t("save_state_saving");
+    el.classList.add("is-saving");
+  } else if (state.editorDirty) {
+    el.textContent = t("save_state_unsaved");
+    el.classList.add("is-dirty");
+  } else if (state.lastSavedAt) {
+    el.textContent = t("save_state_saved", { time: formatSavedTime(state.lastSavedAt) });
+    el.classList.add("is-saved");
+  } else {
+    el.textContent = "";
+    el.classList.add("is-idle");
+  }
+}
+
+function openShortcutsDialog() {
+  const dlg = document.querySelector("#shortcuts-dialog");
+  if (dlg && typeof dlg.showModal === "function") dlg.showModal();
+}
+
+function closeShortcutsDialog() {
+  const dlg = document.querySelector("#shortcuts-dialog");
+  if (dlg && typeof dlg.close === "function") dlg.close();
 }
 
 function handleGlobalKeydown(event) {
-  if (event.key !== "Escape" || elements.insertMenu.hidden) {
+  if (event.key === "Escape" && state.avatarMenuOpen) {
+    closeAvatarMenu();
+    event.preventDefault();
     return;
   }
-  setInsertMenuOpen(false);
-  elements.insertTrigger?.focus();
-  event.preventDefault();
+
+  if (event.key === "Escape" && state.railFilterOpen) {
+    setRailFilterOpen(false);
+    document.querySelector('[data-action="toggle-rail-filters"]')?.focus();
+    event.preventDefault();
+    return;
+  }
+
+  if (event.key === "Escape" && state.commentsOpen) {
+    setCommentsOpen(false);
+    elements.commentsToggle?.focus();
+    event.preventDefault();
+    return;
+  }
+
+  // insert menu removed — Escape handler for it is no longer needed
+
+  if (event.ctrlKey || event.metaKey) {
+    if (event.key === "/") {
+      event.preventDefault();
+      openShortcutsDialog();
+      return;
+    }
+    const inTermEditor = document.activeElement && document.activeElement.id === "term-editor-description-textarea";
+    const inDocEditor = elements.editorForm?.elements?.content_markdown && document.activeElement === elements.editorForm.elements.content_markdown;
+    if (!inTermEditor && !inDocEditor) {
+      return;
+    }
+    const fmtTarget = inTermEditor ? "term" : "document";
+    if (event.key === "b" || event.key === "B") {
+      event.preventDefault();
+      applyFormatAction("bold", fmtTarget);
+    } else if (event.key === "i" || event.key === "I") {
+      event.preventDefault();
+      applyFormatAction("italic", fmtTarget);
+    } else if (event.key === "k" || event.key === "K") {
+      event.preventDefault();
+      applyFormatAction("link", fmtTarget);
+    }
+  }
 }
 
 function insertMarkdownBlock(kind) {
@@ -1302,6 +2423,175 @@ function insertMarkdownBlock(kind) {
   insertAtCursor(elements.editorForm.elements.content_markdown, markdown);
   setInsertMenuOpen(false);
   renderCreatorDraft();
+}
+
+function applyFormatAction(action, target = "document") {
+  const textarea = target === "term"
+    ? document.querySelector("#term-editor-description-textarea")
+    : elements.editorForm?.elements?.content_markdown;
+  if (!textarea) return;
+
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const value = textarea.value;
+  const selected = value.slice(start, end);
+
+  // Compute line start/end boundaries
+  const lineStart = value.lastIndexOf("\n", start - 1) + 1;
+  const lineEndRaw = value.indexOf("\n", end);
+  const lineEnd = lineEndRaw === -1 ? value.length : lineEndRaw;
+
+  let replacement;
+  let newSelStart;
+  let newSelEnd;
+
+  switch (action) {
+    case "bold": {
+      if (selected) {
+        replacement = `**${selected}**`;
+        newSelStart = start;
+        newSelEnd = start + replacement.length;
+      } else {
+        replacement = "**bold**";
+        newSelStart = start + 2;
+        newSelEnd = start + 6;
+      }
+      textarea.focus();
+      textarea.setRangeText(replacement, start, end, "select");
+      textarea.setSelectionRange(newSelStart, newSelEnd);
+      break;
+    }
+    case "italic": {
+      if (selected) {
+        replacement = `*${selected}*`;
+        newSelStart = start;
+        newSelEnd = start + replacement.length;
+      } else {
+        replacement = "*italic*";
+        newSelStart = start + 1;
+        newSelEnd = start + 7;
+      }
+      textarea.focus();
+      textarea.setRangeText(replacement, start, end, "select");
+      textarea.setSelectionRange(newSelStart, newSelEnd);
+      break;
+    }
+    case "inline-code": {
+      if (selected) {
+        replacement = `\`${selected}\``;
+        newSelStart = start;
+        newSelEnd = start + replacement.length;
+      } else {
+        replacement = "`code`";
+        newSelStart = start + 1;
+        newSelEnd = start + 5;
+      }
+      textarea.focus();
+      textarea.setRangeText(replacement, start, end, "select");
+      textarea.setSelectionRange(newSelStart, newSelEnd);
+      break;
+    }
+    case "link": {
+      if (selected) {
+        replacement = `[${selected}](url)`;
+        // Place cursor on "url"
+        newSelStart = start + selected.length + 3;
+        newSelEnd = newSelStart + 3;
+      } else {
+        replacement = "[text](url)";
+        newSelStart = start + 1;
+        newSelEnd = start + 5;
+      }
+      textarea.focus();
+      textarea.setRangeText(replacement, start, end, "select");
+      textarea.setSelectionRange(newSelStart, newSelEnd);
+      break;
+    }
+    case "wiki-link": {
+      if (selected) {
+        replacement = `[[${selected}]]`;
+        newSelStart = start;
+        newSelEnd = start + replacement.length;
+      } else {
+        replacement = "[[term]]";
+        newSelStart = start + 2;
+        newSelEnd = start + 6;
+      }
+      textarea.focus();
+      textarea.setRangeText(replacement, start, end, "select");
+      textarea.setSelectionRange(newSelStart, newSelEnd);
+      break;
+    }
+    case "heading": {
+      const currentLine = value.slice(lineStart, lineEnd);
+      const headingMatch = currentLine.match(/^(#{1,3}) /);
+      let newLine;
+      if (headingMatch) {
+        const level = headingMatch[1].length;
+        const nextLevel = level < 3 ? level + 1 : 1;
+        newLine = currentLine.replace(/^#{1,3} /, "#".repeat(nextLevel) + " ");
+      } else {
+        newLine = "## " + currentLine;
+      }
+      textarea.focus();
+      textarea.setRangeText(newLine, lineStart, lineEnd, "select");
+      // Move cursor to same relative position
+      const delta = newLine.length - currentLine.length;
+      const newCursor = Math.max(lineStart, Math.min(end + delta, lineStart + newLine.length));
+      textarea.setSelectionRange(newCursor, newCursor);
+      break;
+    }
+    case "ul": {
+      const selectionText = selected || value.slice(lineStart, lineEnd);
+      const selStart2 = selected ? start : lineStart;
+      const selEnd2 = selected ? end : lineEnd;
+      const lines = selectionText.split("\n");
+      const newText = lines.map((line) => `- ${line}`).join("\n");
+      textarea.focus();
+      textarea.setRangeText(newText, selStart2, selEnd2, "select");
+      textarea.setSelectionRange(selStart2, selStart2 + newText.length);
+      break;
+    }
+    case "ol": {
+      const selectionText = selected || value.slice(lineStart, lineEnd);
+      const selStart2 = selected ? start : lineStart;
+      const selEnd2 = selected ? end : lineEnd;
+      const lines = selectionText.split("\n");
+      const newText = lines.map((line, i) => `${i + 1}. ${line}`).join("\n");
+      textarea.focus();
+      textarea.setRangeText(newText, selStart2, selEnd2, "select");
+      textarea.setSelectionRange(selStart2, selStart2 + newText.length);
+      break;
+    }
+    case "quote": {
+      const selectionText = selected || value.slice(lineStart, lineEnd);
+      const selStart2 = selected ? start : lineStart;
+      const selEnd2 = selected ? end : lineEnd;
+      const lines = selectionText.split("\n");
+      const newText = lines.map((line) => `> ${line}`).join("\n");
+      textarea.focus();
+      textarea.setRangeText(newText, selStart2, selEnd2, "select");
+      textarea.setSelectionRange(selStart2, selStart2 + newText.length);
+      break;
+    }
+    case "code-block": {
+      if (selected) {
+        replacement = "```\n" + selected + "\n```";
+      } else {
+        replacement = "```\n\n```";
+      }
+      textarea.focus();
+      textarea.setRangeText(replacement, start, end, "select");
+      const innerStart = start + 4;
+      const innerEnd = innerStart + (selected ? selected.length : 0);
+      textarea.setSelectionRange(innerStart, innerEnd);
+      break;
+    }
+    default:
+      return;
+  }
+
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
 }
 
 function insertAtCursor(textarea, text) {
@@ -1347,6 +2637,8 @@ async function saveDocument(event) {
     ? `/api/documents/${encodeURIComponent(state.selectedDocument.id)}`
     : "/api/documents";
 
+  state.editorSaving = true;
+  renderSaveState();
   setStatus(elements.editorStatus, t("saving"));
   try {
     const payload = await request(path, {
@@ -1356,6 +2648,10 @@ async function saveDocument(event) {
     const saved = normalizeDocument(payload?.document || payload);
     state.selectedDocument = saved.id ? saved : { ...seed, ...body };
     state.editorSeed = structuredCloneSafe(state.selectedDocument);
+    state.editorSaving = false;
+    state.editorDirty = false;
+    state.lastSavedAt = state.selectedDocument.updated_at || new Date().toISOString();
+    renderSaveState();
     updateAttachmentControls();
     renderCreatorMetadataSummary(state.selectedDocument);
     renderDocumentDetail();
@@ -1371,6 +2667,8 @@ async function saveDocument(event) {
     setAppMode("creator");
     setCreatorView("preview");
   } catch (error) {
+    state.editorSaving = false;
+    renderSaveState();
     setStatus(elements.editorStatus, readableError(error), true);
   }
 }
@@ -1543,6 +2841,20 @@ function renderComments() {
 
   setStatus(elements.commentsStatus, comments.length ? "" : t("no_comments_yet"));
   renderCommentComposer();
+
+  // Update count badge (unresolved = open + orphaned)
+  const unresolvedCount = state.comments.filter(
+    (c) => c.status === "open" || c.status === "orphaned",
+  ).length;
+  if (elements.commentsCountBadge) {
+    elements.commentsCountBadge.textContent = String(unresolvedCount);
+    elements.commentsCountBadge.dataset.empty = unresolvedCount === 0 ? "true" : "false";
+  }
+
+  // Show toggle only when a document is selected
+  if (elements.commentsToggle) {
+    elements.commentsToggle.hidden = !state.selectedDocument;
+  }
 }
 
 function commentActionButton(id, action, label) {
@@ -1938,6 +3250,148 @@ async function restoreRevision() {
   }
 }
 
+function setTermTab(tab) {
+  state.activeTermTab = tab;
+  document.querySelectorAll(".term-detail-tabs button").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.termTab === tab);
+  });
+  document.querySelectorAll(".term-section").forEach((section) => {
+    const id = section.id;
+    const active = id === `term-section-${tab}`;
+    section.classList.toggle("is-active", active);
+    section.hidden = !active;
+  });
+  if (tab === "history" && state.selectedTerm?.id && !state.termRevisions.length) {
+    loadTermRevisions(state.selectedTerm.id);
+  }
+}
+
+async function loadTermRevisions(termId) {
+  if (!elements.termDiffStatus) return;
+  setStatus(elements.termDiffStatus, t("loading_term_revisions"));
+  try {
+    const payload = await request(`/api/glossary/${encodeURIComponent(termId)}/revisions`);
+    state.termRevisions = (payload?.items || []);
+    renderTermRevisionList();
+    setStatus(elements.termDiffStatus, state.termRevisions.length ? "" : t("no_term_revisions_yet"));
+  } catch (error) {
+    state.termRevisions = [];
+    renderTermRevisionList();
+    setStatus(elements.termDiffStatus, readableError(error), true);
+  }
+}
+
+function renderTermRevisionList() {
+  if (!elements.termRevisionList) return;
+  elements.termRevisionList.replaceChildren(
+    ...state.termRevisions.map((rev) => {
+      const item = document.createElement("li");
+      const button = document.createElement("button");
+      button.type = "button";
+      button.dataset.termRevisionId = rev.id;
+      const author = rev.author_display_name || rev.author_username || t("unknown_author");
+      button.innerHTML = `
+        <strong>v${escapeHtml(String(rev.version_number ?? "?"))}</strong>
+        <span class="list-summary">${escapeHtml(author)}</span>
+        <span class="list-meta">${escapeHtml(formatDate(rev.created_at))}</span>
+      `;
+      item.append(button);
+      return item;
+    }),
+  );
+
+  if (!elements.termDiffTarget || !elements.termDiffAgainst) return;
+  const options = state.termRevisions.map((rev) => {
+    const option = document.createElement("option");
+    option.value = rev.id;
+    option.textContent = `v${rev.version_number ?? "?"}`;
+    return option;
+  });
+  elements.termDiffTarget.replaceChildren(...options.map((o) => o.cloneNode(true)));
+  elements.termDiffAgainst.replaceChildren(...options);
+
+  if (state.termRevisions.length >= 2) {
+    elements.termDiffTarget.value = state.termRevisions[0].id;
+    elements.termDiffAgainst.value = state.termRevisions[1].id;
+  }
+  if (elements.termDiffOutput) {
+    elements.termDiffOutput.textContent = "";
+  }
+  if (state.termRevisions.length < 2) {
+    setStatus(elements.termDiffStatus, t("need_two_term_revisions"));
+  }
+}
+
+function selectTermRevision(id) {
+  if (!elements.termRevisionList) return;
+  elements.termRevisionList.querySelectorAll("button").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.termRevisionId === String(id));
+  });
+  if (elements.termDiffTarget) {
+    elements.termDiffTarget.value = id;
+  }
+}
+
+async function loadTermDiff() {
+  if (!elements.termDiffTarget || !elements.termDiffAgainst || !elements.termDiffStatus) return;
+  const aId = elements.termDiffTarget.value;
+  const bId = elements.termDiffAgainst.value;
+  if (!aId || !bId || aId === bId) {
+    setStatus(elements.termDiffStatus, t("choose_two_different_revisions"), true);
+    return;
+  }
+  setStatus(elements.termDiffStatus, t("loading_diff"));
+  try {
+    const payload = await request(`/api/glossary/revisions/diff?a=${encodeURIComponent(aId)}&b=${encodeURIComponent(bId)}`);
+    if (elements.termDiffOutput) {
+      elements.termDiffOutput.textContent = Array.isArray(payload?.diff)
+        ? payload.diff.join("\n")
+        : (payload?.diff || "");
+    }
+    setStatus(elements.termDiffStatus, "");
+  } catch (error) {
+    if (elements.termDiffOutput) elements.termDiffOutput.textContent = "";
+    setStatus(elements.termDiffStatus, readableError(error), true);
+  }
+}
+
+async function restoreTermRevision() {
+  if (!hasRoleAtLeast("editor")) {
+    if (elements.termDiffStatus) setStatus(elements.termDiffStatus, t("no_permission"), true);
+    return;
+  }
+  if (!elements.termDiffTarget) return;
+  const revisionId = elements.termDiffTarget.value;
+  if (!revisionId) {
+    setStatus(elements.termDiffStatus, t("choose_revision_to_restore"), true);
+    return;
+  }
+  const rev = state.termRevisions.find((r) => String(r.id) === String(revisionId));
+  if (!window.confirm(t("restore_term_revision_confirm", { version: rev?.version_number ?? "?" }))) {
+    return;
+  }
+  setStatus(elements.termDiffStatus, t("restoring_term_revision"));
+  try {
+    const term = await request(`/api/glossary/revisions/${encodeURIComponent(revisionId)}/restore`, {
+      method: "POST",
+    });
+    const normalized = normalizeTerm(term);
+    state.selectedTerm = normalized;
+    // Update glossary state to reflect new term data
+    const idx = state.glossary.findIndex((g) => String(g.id) === String(normalized.id));
+    if (idx >= 0) state.glossary.splice(idx, 1, normalized);
+    renderTermDetail();
+    renderGlossaryList();
+    // Reload revisions to show the new restoration revision
+    if (state.selectedTerm?.id) {
+      await loadTermRevisions(state.selectedTerm.id);
+    }
+    setStatus(elements.termDiffStatus, t("restored_term_revision", { version: rev?.version_number ?? "?" }));
+  } catch (error) {
+    setStatus(elements.termDiffStatus, readableError(error), true);
+  }
+}
+
 async function loadGlossary() {
   setStatus(elements.glossaryStatus, t("loading_glossary"));
   try {
@@ -1957,22 +3411,36 @@ function renderGlossaryList() {
   const terms = state.glossary.filter((term) => {
     return !query || `${term.term} ${term.description_markdown}`.toLowerCase().includes(query);
   });
+  const inCreator = state.activeMode === "creator";
 
   elements.glossaryList.replaceChildren(
     ...terms.map((term) => {
       const item = document.createElement("li");
+      item.className = "glossary-list-item";
       const button = document.createElement("button");
       button.type = "button";
       button.dataset.termId = term.id;
       button.classList.toggle("is-active", term.id === state.selectedTerm?.id);
       button.textContent = term.term || t("untitled_term");
       item.append(button);
+      if (inCreator) {
+        const insert = document.createElement("button");
+        insert.type = "button";
+        insert.className = "glossary-insert-button icon-button";
+        insert.dataset.action = "insert-glossary-term-link";
+        insert.dataset.termName = term.term;
+        insert.dataset.termSlug = term.slug;
+        insert.setAttribute("aria-label", t("insert_term_link"));
+        insert.innerHTML = '<i data-lucide="link-2" aria-hidden="true"></i>';
+        item.append(insert);
+      }
       return item;
     }),
   );
+  refreshIcons();
 }
 
-async function selectTerm(id) {
+async function selectTerm(id, { focusViewer = true, skipHashUpdate = false } = {}) {
   try {
     const payload = await request(`/api/glossary/${encodeURIComponent(id)}`);
     state.selectedTerm = normalizeTerm(payload);
@@ -1985,8 +3453,27 @@ async function selectTerm(id) {
     }
   }
 
+  // Reset term tab and revision state when switching terms
+  state.activeTermTab = "overview";
+  state.termRevisions = [];
+  state.selectedTermRevision = null;
+
+  if (focusViewer) {
+    state.viewerContent = "term";
+    setAppMode("viewer");
+    setMobileView("workspace");
+  }
   renderGlossaryList();
   renderGlossaryDetail();
+  renderDocumentDetail();
+  renderTermDetail();
+  if (focusViewer && !skipHashUpdate && state.selectedTerm?.slug) {
+    updateHashRoute({ type: "term", slug: state.selectedTerm.slug });
+  }
+  // Eagerly load revisions so history tab is ready
+  if (state.selectedTerm?.id) {
+    loadTermRevisions(state.selectedTerm.id);
+  }
 }
 
 function renderGlossaryDetail() {
@@ -2001,6 +3488,295 @@ function renderGlossaryDetail() {
   body.className = "markdown-body";
   elements.glossaryDetail.append(body);
   renderMarkdown(body, term.description_markdown || "");
+}
+
+function clientNormalizeSlug(value) {
+  return String(value || "").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+}
+
+function updateSlugPreview() {
+  const dialog = elements.termEditorDialog;
+  if (!dialog || !dialog.open) return;
+  const form = dialog.querySelector("#term-editor-form");
+  const previewEl = document.querySelector("#term-slug-preview");
+  if (!form || !previewEl) return;
+  const termName = String(form.elements.term.value || "").trim();
+  const slugInput = String(form.elements.slug.value || "").trim();
+  const proposed = slugInput
+    ? clientNormalizeSlug(slugInput)
+    : clientNormalizeSlug(termName);
+  if (!proposed) {
+    previewEl.hidden = true;
+    return;
+  }
+  const editingId = state.editingTerm?.id ?? null;
+  const collision = state.glossary.find(
+    (t) => t.id !== editingId && (t.slug === proposed || (t.aliases || []).some((a) => a.alias_slug === proposed)),
+  );
+  previewEl.hidden = false;
+  previewEl.dataset.status = collision ? "collision" : "ok";
+  if (collision) {
+    previewEl.innerHTML = escapeHtml(t("slug_preview_collision", { slug: proposed, conflict: collision.term || "" }));
+  } else {
+    previewEl.innerHTML = t("slug_preview_ok", { slug: `<code>/term/${escapeHtml(proposed)}</code>` });
+  }
+}
+
+function renderTermEditorUsedIn(term) {
+  const host = document.querySelector("#term-editor-usedin");
+  const list = document.querySelector("#term-editor-usedin-list");
+  const countEl = document.querySelector("#term-editor-usedin-count");
+  if (!host || !list || !countEl) return;
+  const docs = term?.related_documents || [];
+  if (!term || docs.length === 0) {
+    host.hidden = true;
+    list.replaceChildren();
+    countEl.textContent = "";
+    return;
+  }
+  host.hidden = false;
+  countEl.textContent = `(${docs.length})`;
+  list.replaceChildren(...docs.map((doc) => {
+    const li = document.createElement("li");
+    li.textContent = doc.title || t("untitled_document");
+    return li;
+  }));
+}
+
+function openTermEditor(term) {
+  state.editingTerm = term || null;
+  const dialog = elements.termEditorDialog;
+  if (!dialog) return;
+  const form = dialog.querySelector("#term-editor-form");
+  if (!form) return;
+  const titleEl = dialog.querySelector("#term-editor-title");
+  if (titleEl) {
+    titleEl.textContent = term ? t("edit_term") : t("new_term");
+    titleEl.dataset.i18n = term ? "edit_term" : "new_term";
+  }
+  form.elements.term.value = term?.term || "";
+  form.elements.slug.value = term?.slug || "";
+  form.elements.description_markdown.value = term?.description_markdown || "";
+  // Populate aliases textarea
+  if (form.elements.aliases) {
+    form.elements.aliases.value = (term?.aliases || []).map((a) => a.alias).join("\n");
+  }
+  // Populate term tags checkboxes
+  const termTagsContainer = dialog.querySelector("#term-editor-tags");
+  if (termTagsContainer) {
+    const checkedIds = new Set((term?.tags || []).map((tg) => String(tg.id)));
+    termTagsContainer.replaceChildren(
+      ...(state.tags || []).map((tag) => {
+        const label = document.createElement("label");
+        label.className = "tag-chip-label";
+        const input = document.createElement("input");
+        input.type = "checkbox";
+        input.name = "term_tag_ids";
+        input.value = String(tag.id);
+        if (checkedIds.has(String(tag.id))) input.checked = true;
+        const span = document.createElement("span");
+        span.className = "chip";
+        span.textContent = tag.name;
+        label.append(input, span);
+        return label;
+      }),
+    );
+  }
+  renderTermEditorPreview();
+  renderTermEditorUsedIn(term);
+  updateSlugPreview();
+  if (!dialog.open) {
+    dialog.showModal();
+  }
+  form.elements.term.focus();
+}
+
+function closeTermEditor() {
+  const dialog = elements.termEditorDialog;
+  if (dialog?.open) {
+    dialog.close();
+  }
+  state.editingTerm = null;
+}
+
+function openTermEditorForCreation(seedName) {
+  state.editingTerm = null;
+  const dialog = elements.termEditorDialog;
+  if (!dialog) return;
+  const form = dialog.querySelector("#term-editor-form");
+  if (!form) return;
+  // Reset form
+  form.elements.term.value = (seedName || "").trim();
+  form.elements.slug.value = "";
+  form.elements.description_markdown.value = "";
+  if (form.elements.aliases) form.elements.aliases.value = "";
+  // Reset tag checkboxes
+  const tagsHost = dialog.querySelector("#term-editor-tags");
+  if (tagsHost) {
+    tagsHost.querySelectorAll('input[type="checkbox"]').forEach((cb) => { cb.checked = false; });
+  }
+  const titleEl = dialog.querySelector("#term-editor-title");
+  if (titleEl) {
+    titleEl.textContent = t("new_term");
+    titleEl.dataset.i18n = "new_term";
+  }
+  if (!dialog.open) dialog.showModal();
+  renderTermEditorPreview();
+  renderTermEditorUsedIn(null);
+  updateSlugPreview();
+  form.elements.term.focus();
+  form.elements.term.select();
+}
+
+function promoteSelectionToTerm() {
+  if (!hasRoleAtLeast("editor")) return;
+  const textarea = elements.editorForm?.elements?.content_markdown;
+  if (!textarea) return;
+  const start = textarea.selectionStart;
+  const end = textarea.selectionEnd;
+  const selected = textarea.value.slice(start, end).trim();
+  if (!selected) {
+    setStatus(elements.editorStatus, t("promote_no_selection"));
+    return;
+  }
+  // Replace selection with [[selected]] so the link will resolve once the term is saved.
+  textarea.focus();
+  textarea.setRangeText(`[[${selected}]]`, start, end, "select");
+  textarea.dispatchEvent(new Event("input", { bubbles: true }));
+  // Open the term editor pre-filled.
+  openTermEditorForCreation(selected);
+}
+
+async function submitTermForm(event) {
+  event.preventDefault();
+  const form = event.target;
+  const termText = String(form.elements.term.value || "").trim();
+  const slug = String(form.elements.slug.value || "").trim();
+  const description_markdown = String(form.elements.description_markdown.value || "");
+  if (!termText) {
+    return;
+  }
+  const editing = state.editingTerm?.id;
+  const path = editing ? `/api/glossary/${encodeURIComponent(editing)}` : "/api/glossary";
+  const body = { term: termText, description_markdown };
+  if (slug) body.slug = slug;
+  // Collect aliases from textarea (one per line)
+  if (form.elements.aliases) {
+    body.aliases = String(form.elements.aliases.value || "")
+      .split("\n")
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  // Collect tag_ids from checkboxes
+  const checkedTagInputs = form.querySelectorAll('input[name="term_tag_ids"]:checked');
+  if (checkedTagInputs.length > 0 || form.querySelector('input[name="term_tag_ids"]')) {
+    body.tag_ids = [...checkedTagInputs].map((input) => Number(input.value)).filter(Boolean);
+  }
+  try {
+    const savedTerm = normalizeTerm(await request(path, {
+      method: editing ? "PUT" : "POST",
+      body: JSON.stringify(body),
+    }));
+    closeTermEditor();
+    setStatus(elements.glossaryStatus, t("term_saved"));
+    await loadGlossary();
+    if (state.selectedDocument) {
+      renderDocumentDetail();
+    }
+    if (state.viewerContent === "term" && state.selectedTerm) {
+      renderTermDetail();
+    }
+    if (savedTerm?.id) {
+      await selectTerm(savedTerm.id);
+    }
+  } catch (error) {
+    setStatus(elements.glossaryStatus, readableError(error), true);
+  }
+}
+
+function confirmDeleteTerm() {
+  const term = state.selectedTerm;
+  if (!term?.id) return;
+  state.deleteTermPending = term;
+  const dialog = document.querySelector("#delete-term-dialog");
+  if (!dialog) return;
+  const question = document.querySelector("#delete-term-question");
+  const warning = document.querySelector("#delete-term-warning-region");
+  const usedInList = document.querySelector("#delete-term-usedin-list");
+  const confirmRegion = document.querySelector("#delete-term-confirm-region");
+  const confirmLabel = document.querySelector("#delete-term-confirm-label");
+  const confirmInput = document.querySelector("#delete-term-confirm-input");
+  const confirmButton = document.querySelector("#delete-term-confirm-button");
+  if (question) question.textContent = t("delete_term_question", { term: term.term || "" });
+  const docs = term.related_documents || [];
+  if (docs.length > 0) {
+    if (warning) {
+      warning.hidden = false;
+      warning.textContent = t("delete_term_used_warning", { count: String(docs.length) });
+    }
+    if (usedInList) {
+      usedInList.replaceChildren(...docs.map((doc) => {
+        const li = document.createElement("li");
+        li.textContent = doc.title || t("untitled_document");
+        return li;
+      }));
+    }
+    if (confirmRegion) confirmRegion.hidden = false;
+    if (confirmLabel) confirmLabel.textContent = t("delete_term_type_confirm", { term: term.term || "" });
+    if (confirmInput) {
+      confirmInput.value = "";
+      confirmInput.addEventListener("input", updateDeleteTermButtonState);
+    }
+    if (confirmButton) confirmButton.disabled = true;
+  } else {
+    if (warning) warning.hidden = true;
+    if (usedInList) usedInList.replaceChildren();
+    if (confirmRegion) confirmRegion.hidden = true;
+    if (confirmButton) confirmButton.disabled = false;
+  }
+  if (!dialog.open) dialog.showModal();
+}
+
+function updateDeleteTermButtonState() {
+  const term = state.deleteTermPending;
+  const input = document.querySelector("#delete-term-confirm-input");
+  const button = document.querySelector("#delete-term-confirm-button");
+  if (!term || !input || !button) return;
+  const docs = term.related_documents || [];
+  if (docs.length === 0) {
+    button.disabled = false;
+    return;
+  }
+  button.disabled = input.value.trim() !== term.term;
+}
+
+function closeDeleteTermDialog() {
+  const dialog = document.querySelector("#delete-term-dialog");
+  if (dialog?.open) dialog.close();
+  state.deleteTermPending = null;
+}
+
+async function executeDeleteTerm() {
+  const term = state.deleteTermPending;
+  if (!term?.id) return;
+  const docs = term.related_documents || [];
+  const input = document.querySelector("#delete-term-confirm-input");
+  if (docs.length > 0 && input && input.value.trim() !== term.term) {
+    return;
+  }
+  try {
+    await request(`/api/glossary/${encodeURIComponent(term.id)}`, { method: "DELETE" });
+    setStatus(elements.glossaryStatus, t("term_deleted"));
+    state.selectedTerm = null;
+    state.viewerContent = "document";
+    renderDocumentDetail();
+    renderTermDetail();
+    closeDeleteTermDialog();
+    await loadGlossary();
+    if (state.selectedDocument) renderDocumentDetail();
+  } catch (error) {
+    setStatus(elements.glossaryStatus, readableError(error), true);
+  }
 }
 
 async function loadPlugins() {
@@ -2092,6 +3868,21 @@ function setAppMode(mode) {
       setMobileView("workspace");
     }
     setCreatorView(state.activeCreatorView);
+    setCommentsOpen(false);
+  }
+  if (state.glossary?.length) {
+    renderGlossaryList();
+  }
+}
+
+function setCommentsOpen(open) {
+  state.commentsOpen = Boolean(open);
+  elements.shell.dataset.commentsOpen = String(state.commentsOpen);
+  if (elements.commentsToggle) {
+    elements.commentsToggle.setAttribute(
+      "aria-label",
+      state.commentsOpen ? t("close_comments") : t("open_comments"),
+    );
   }
 }
 
@@ -2106,6 +3897,51 @@ function setCreatorView(view) {
   if (view === "preview") {
     renderCreatorPreview();
   }
+  if (view === "edit") {
+    renderEditorLivePreview();
+  }
+}
+
+function setRibbonTab(tab) {
+  if (!tab) return;
+  state.activeRibbonTab = tab;
+  document.querySelectorAll(".ribbon-tabs button").forEach((btn) => {
+    const active = btn.dataset.ribbonTab === tab;
+    btn.classList.toggle("is-active", active);
+    btn.setAttribute("aria-selected", String(active));
+  });
+  document.querySelectorAll(".ribbon-panel").forEach((panel) => {
+    const active = panel.id === `ribbon-panel-${tab}`;
+    panel.classList.toggle("is-active", active);
+    panel.hidden = !active;
+  });
+}
+
+function setPreviewMode(mode) {
+  if (!["split", "editor", "preview"].includes(mode)) return;
+  state.previewMode = mode;
+  if (elements.writingStage) {
+    elements.writingStage.dataset.previewMode = mode;
+  }
+  document.querySelectorAll(".preview-mode-toggle button").forEach((button) => {
+    button.classList.toggle("is-active", button.dataset.previewMode === mode);
+  });
+  if (mode === "split" || mode === "preview") {
+    renderEditorLivePreview();
+  }
+}
+
+function renderEditorLivePreview() {
+  if (!elements.editorLivePreview) return;
+  const value = elements.editorForm.elements.content_markdown.value;
+  renderMarkdown(elements.editorLivePreview, value);
+}
+
+function renderTermEditorPreview() {
+  const textarea = document.querySelector("#term-editor-description-textarea");
+  const preview = document.querySelector("#term-editor-live-preview");
+  if (!textarea || !preview) return;
+  renderMarkdown(preview, textarea.value || "");
 }
 
 function setAuxPanel(panel) {
@@ -2151,9 +3987,377 @@ function renderMarkdown(target, markdown) {
     diagram.textContent = code.textContent;
     code.parentElement.replaceWith(diagram);
   });
+  applyWikiLinks(target);
   if (window.mermaid) {
     mermaid.run({ nodes: target.querySelectorAll(".mermaid") }).catch(() => {});
   }
+}
+
+const WIKI_LINK_PATTERN = /\[\[([^\]|\n]+?)(?:\|([^\]\n]+))?\]\]/g;
+const WIKI_LINK_SKIP_TAGS = new Set(["A", "CODE", "PRE", "SCRIPT", "STYLE"]);
+
+function applyWikiLinks(root) {
+  if (!root) return;
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!node.nodeValue || !node.nodeValue.includes("[[")) {
+        return NodeFilter.FILTER_REJECT;
+      }
+      let parent = node.parentNode;
+      while (parent && parent !== root) {
+        if (WIKI_LINK_SKIP_TAGS.has(parent.nodeName)) {
+          return NodeFilter.FILTER_REJECT;
+        }
+        parent = parent.parentNode;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  const textNodes = [];
+  let current = walker.nextNode();
+  while (current) {
+    textNodes.push(current);
+    current = walker.nextNode();
+  }
+
+  textNodes.forEach((node) => replaceWikiLinksInTextNode(node));
+
+  // Auto-link pass: only if setting is enabled
+  if (state.settings?.glossary_autolink === "on") {
+    applyGlossaryAutolinks(root);
+  }
+}
+
+function replaceWikiLinksInTextNode(node) {
+  const text = node.nodeValue;
+  WIKI_LINK_PATTERN.lastIndex = 0;
+  let match = WIKI_LINK_PATTERN.exec(text);
+  if (!match) return;
+
+  const fragment = document.createDocumentFragment();
+  let cursor = 0;
+  do {
+    if (match.index > cursor) {
+      fragment.append(document.createTextNode(text.slice(cursor, match.index)));
+    }
+    const targetRaw = (match[1] || "").trim();
+    const displayRaw = (match[2] || "").trim();
+    fragment.append(buildWikiLink(targetRaw, displayRaw || targetRaw));
+    cursor = WIKI_LINK_PATTERN.lastIndex;
+    match = WIKI_LINK_PATTERN.exec(text);
+  } while (match);
+
+  if (cursor < text.length) {
+    fragment.append(document.createTextNode(text.slice(cursor)));
+  }
+  node.parentNode.replaceChild(fragment, node);
+}
+
+function resolveGlossaryTerm(target) {
+  if (!target) return null;
+  const needle = target.toLowerCase();
+  return (
+    state.glossary.find(
+      (term) =>
+        (term.term || "").toLowerCase() === needle ||
+        (term.slug || "").toLowerCase() === needle ||
+        (term.aliases || []).some(
+          (a) =>
+            (a.alias || "").toLowerCase() === needle ||
+            (a.alias_slug || "").toLowerCase() === needle,
+        ),
+    ) || null
+  );
+}
+
+function buildWikiLink(target, display) {
+  const anchor = document.createElement("a");
+  anchor.className = "wiki-link";
+  anchor.dataset.wikiTarget = target;
+  anchor.textContent = display || target;
+  const term = resolveGlossaryTerm(target);
+  if (term) {
+    anchor.dataset.termId = term.id;
+    anchor.href = `#term-${term.id}`;
+    anchor.title = term.term || target;
+  } else {
+    anchor.classList.add("is-missing");
+    anchor.href = "#";
+    anchor.title = hasRoleAtLeast("editor")
+      ? t("wiki_link_unresolved_editor", { term: target })
+      : t("wiki_link_unresolved", { term: target });
+  }
+  return anchor;
+}
+
+// ── Glossary index ────────────────────────────────────────────────────────
+
+function showGlossaryIndex() {
+  state.viewerContent = "glossary";
+  setAppMode("viewer");
+  setMobileView("workspace");
+  renderDocumentDetail();
+  renderTermDetail();
+  renderGlossaryIndex();
+  updateHashRoute({ type: "glossary", slug: "" });
+}
+
+function renderGlossaryIndex() {
+  const article = document.querySelector("#glossary-index");
+  if (!article) return;
+  article.hidden = state.viewerContent !== "glossary";
+  if (article.hidden) return;
+  populateGlossaryIndexTagFilter();
+  const filter = state.glossaryIndexFilter;
+  const q = (filter.q || "").toLowerCase();
+  const tag = (filter.tag || "").toLowerCase();
+  const sort = filter.sort || "term_asc";
+
+  let items = state.glossary.slice();
+  if (q) {
+    items = items.filter((term) => {
+      const hay = `${term.term} ${term.description_markdown || ""} ${(term.aliases || []).map((a) => a.alias).join(" ")}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }
+  if (tag) {
+    items = items.filter((term) => (term.tags || []).some((tg) => (tg.slug || "").toLowerCase() === tag));
+  }
+  items.sort((a, b) => {
+    if (sort === "term_asc") return (a.term || "").localeCompare(b.term || "");
+    if (sort === "term_desc") return (b.term || "").localeCompare(a.term || "");
+    if (sort === "updated_desc") return (b.updated_at || "").localeCompare(a.updated_at || "");
+    return 0;
+  });
+
+  const listEl = document.querySelector("#glossary-index-list");
+  if (!listEl) return;
+  listEl.replaceChildren(...items.map((term) => {
+    const li = document.createElement("li");
+    li.className = "glossary-index-item";
+    const button = document.createElement("button");
+    button.type = "button";
+    button.dataset.termId = term.id;
+    button.className = "glossary-index-button";
+    const name = document.createElement("span");
+    name.className = "glossary-index-name";
+    name.textContent = term.term || t("untitled_term");
+    button.append(name);
+    if ((term.aliases || []).length) {
+      const aliasSpan = document.createElement("span");
+      aliasSpan.className = "glossary-index-aliases muted";
+      aliasSpan.textContent = (term.aliases || []).map((a) => a.alias).join(", ");
+      button.append(aliasSpan);
+    }
+    if (term.description_markdown) {
+      const desc = document.createElement("span");
+      desc.className = "glossary-index-desc muted";
+      desc.textContent = String(term.description_markdown).slice(0, 200);
+      button.append(desc);
+    }
+    li.append(button);
+    return li;
+  }));
+  if (!items.length) {
+    const li = document.createElement("li");
+    li.className = "muted";
+    li.textContent = t("no_glossary_terms_found");
+    listEl.append(li);
+  }
+  refreshIcons();
+}
+
+function populateGlossaryIndexTagFilter() {
+  const select = document.querySelector("#glossary-index-tag-filter");
+  if (!select) return;
+  const seen = new Map();
+  state.glossary.forEach((term) => {
+    (term.tags || []).forEach((tag) => {
+      if (!seen.has(tag.slug)) seen.set(tag.slug, tag.name);
+    });
+  });
+  const current = state.glossaryIndexFilter.tag || "";
+  select.replaceChildren();
+  const optAll = document.createElement("option");
+  optAll.value = "";
+  optAll.textContent = t("all_tags");
+  select.append(optAll);
+  for (const [slug, name] of seen) {
+    const opt = document.createElement("option");
+    opt.value = slug;
+    opt.textContent = name;
+    if (slug === current) opt.selected = true;
+    select.append(opt);
+  }
+}
+
+// ── Bulk import ────────────────────────────────────────────────────────────
+
+function openBulkImportDialog() {
+  if (!hasRoleAtLeast("admin")) return;
+  const dialog = document.querySelector("#bulk-import-dialog");
+  if (!dialog) return;
+  const form = document.querySelector("#bulk-import-form");
+  if (form) form.reset();
+  const statusEl = document.querySelector("#bulk-import-status");
+  if (statusEl) { statusEl.textContent = ""; statusEl.classList.remove("is-error"); }
+  if (!dialog.open) dialog.showModal();
+}
+
+function closeBulkImportDialog() {
+  const dialog = document.querySelector("#bulk-import-dialog");
+  if (dialog?.open) dialog.close();
+}
+
+async function submitBulkImport(event) {
+  event.preventDefault();
+  const form = event.target;
+  const statusEl = document.querySelector("#bulk-import-status");
+  const raw = String(form.elements.json?.value || "").trim();
+  let items;
+  try {
+    items = JSON.parse(raw);
+  } catch (err) {
+    if (statusEl) { statusEl.textContent = "Invalid JSON: " + err.message; statusEl.classList.add("is-error"); }
+    return;
+  }
+  if (!Array.isArray(items)) {
+    if (statusEl) { statusEl.textContent = "Expected a JSON array."; statusEl.classList.add("is-error"); }
+    return;
+  }
+  if (statusEl) { statusEl.textContent = "Importing..."; statusEl.classList.remove("is-error"); }
+  try {
+    const summary = await request("/api/glossary/bulk", {
+      method: "POST",
+      body: JSON.stringify(items),
+    });
+    await loadGlossary();
+    closeBulkImportDialog();
+    if (state.viewerContent === "glossary") renderGlossaryIndex();
+    setStatus(elements.glossaryStatus, t("bulk_import_success", {
+      created: String(summary.created?.length ?? 0),
+      updated: String(summary.updated?.length ?? 0),
+    }));
+  } catch (error) {
+    if (statusEl) { statusEl.textContent = readableError(error); statusEl.classList.add("is-error"); }
+  }
+}
+
+// ── Settings / autolink ────────────────────────────────────────────────────
+
+async function loadSettings() {
+  try {
+    const settings = await request("/api/settings");
+    state.settings = settings || { glossary_autolink: "off" };
+  } catch (_) {
+    state.settings = { glossary_autolink: "off" };
+  }
+  renderAutolinkStatus();
+}
+
+function renderAutolinkStatus() {
+  const statusEl = document.querySelector("#autolink-status");
+  if (!statusEl) return;
+  statusEl.textContent = state.settings?.glossary_autolink === "on" ? "ON" : "OFF";
+}
+
+async function toggleGlossaryAutolink() {
+  if (!hasRoleAtLeast("admin")) return;
+  const currentValue = state.settings?.glossary_autolink || "off";
+  const newValue = currentValue === "on" ? "off" : "on";
+  try {
+    await request("/api/settings/glossary_autolink", {
+      method: "PUT",
+      body: JSON.stringify({ value: newValue }),
+    });
+    state.settings = { ...state.settings, glossary_autolink: newValue };
+    renderAutolinkStatus();
+    // Re-render visible markdown bodies to apply or remove autolinks
+    renderDocumentDetail();
+    renderTermDetail();
+    if (state.viewerContent === "glossary") renderGlossaryIndex();
+  } catch (error) {
+    // Silently ignore if not admin or server error
+  }
+}
+
+// ── Autolink pass ──────────────────────────────────────────────────────────
+
+function applyGlossaryAutolinks(root) {
+  if (!root || !state.glossary.length) return;
+
+  // Build needle list: longest first so multi-word terms match before substrings
+  const needles = [];
+  state.glossary.forEach((term) => {
+    if (term.term) needles.push({ needle: term.term, term });
+    (term.aliases || []).forEach((a) => {
+      if (a.alias) needles.push({ needle: a.alias, term });
+    });
+  });
+  needles.sort((a, b) => b.needle.length - a.needle.length);
+
+  const AUTOLINK_SKIP_TAGS = new Set(["A", "CODE", "PRE", "SCRIPT", "STYLE"]);
+
+  const walker = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode(node) {
+      if (!node.nodeValue || !node.nodeValue.trim()) return NodeFilter.FILTER_REJECT;
+      let parent = node.parentNode;
+      while (parent && parent !== root) {
+        if (AUTOLINK_SKIP_TAGS.has(parent.nodeName)) return NodeFilter.FILTER_REJECT;
+        parent = parent.parentNode;
+      }
+      return NodeFilter.FILTER_ACCEPT;
+    },
+  });
+
+  const textNodes = [];
+  let cur = walker.nextNode();
+  while (cur) { textNodes.push(cur); cur = walker.nextNode(); }
+
+  textNodes.forEach((node) => {
+    const text = node.nodeValue;
+    // Find the earliest match across all needles
+    let bestIndex = -1;
+    let bestLength = 0;
+    let bestTerm = null;
+
+    for (const { needle, term } of needles) {
+      // Simple case-insensitive word-boundary search
+      const ltext = text.toLowerCase();
+      const lneedle = needle.toLowerCase();
+      let pos = ltext.indexOf(lneedle);
+      while (pos !== -1) {
+        const before = pos === 0 ? true : !/\w/.test(text[pos - 1]);
+        const after = (pos + needle.length >= text.length) ? true : !/\w/.test(text[pos + needle.length]);
+        if (before && after) {
+          if (bestIndex === -1 || pos < bestIndex || (pos === bestIndex && needle.length > bestLength)) {
+            bestIndex = pos;
+            bestLength = needle.length;
+            bestTerm = term;
+          }
+          break;
+        }
+        pos = ltext.indexOf(lneedle, pos + 1);
+      }
+    }
+
+    if (bestIndex === -1 || !bestTerm) return;
+
+    const fragment = document.createDocumentFragment();
+    if (bestIndex > 0) fragment.append(document.createTextNode(text.slice(0, bestIndex)));
+    const anchor = document.createElement("a");
+    anchor.className = "wiki-link";
+    anchor.dataset.termId = bestTerm.id;
+    anchor.href = `#term-${bestTerm.id}`;
+    anchor.title = bestTerm.term;
+    anchor.textContent = text.slice(bestIndex, bestIndex + bestLength);
+    fragment.append(anchor);
+    if (bestIndex + bestLength < text.length) {
+      fragment.append(document.createTextNode(text.slice(bestIndex + bestLength)));
+    }
+    node.parentNode.replaceChild(fragment, node);
+  });
 }
 
 function sanitizeHtml(html) {
@@ -2225,6 +4429,10 @@ function normalizeTerm(item = {}) {
     id: item.id,
     term: item.term || item.name || "",
     description_markdown: item.description_markdown || item.description || "",
+    aliases: item.aliases || [],
+    tags: item.tags || [],
+    related_documents: item.related_documents || [],
+    related_tags: item.related_tags || [],
   };
 }
 
@@ -2341,6 +4549,9 @@ function renderRoleAwareControls() {
   document.querySelectorAll("[data-auth-only]").forEach((node) => {
     node.hidden = !state.session;
   });
+  document.querySelectorAll("[data-auth-hidden]").forEach((node) => {
+    node.hidden = Boolean(state.session);
+  });
   document.querySelectorAll("[data-role-min]").forEach((node) => {
     node.hidden = !hasRoleAtLeast(node.dataset.roleMin);
   });
@@ -2450,6 +4661,7 @@ function rerenderLocalizedContent() {
   renderCreatorDraft();
   renderCreatorMetadataSummary();
   updateCommentTargetControls();
+  renderInsertBlocks();
 }
 
 function roleLabel(role) {

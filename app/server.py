@@ -73,6 +73,8 @@ def build_handler(context: AppContext):
                         return self.handle_taxonomy("tags", method, parts[2:], connection, user)
                     if parts[:2] == ["api", "glossary"]:
                         return self.handle_glossary(method, parts[2:], parsed.query, connection, user)
+                    if parts[:2] == ["api", "settings"]:
+                        return self.handle_settings(method, parts[2:], connection, user)
                     if parts[:2] == ["api", "search"]:
                         return self.handle_search(method, parsed.query, connection, user)
                     if parts[:2] == ["api", "plugins"]:
@@ -282,6 +284,7 @@ def build_handler(context: AppContext):
                 if not comment:
                     return self.json_error("not_found", "Comment not found.", HTTPStatus.NOT_FOUND)
                 if user["id"] != comment["created_by"] and "admin" not in user["roles"]:
+                    self._drain_request_body()
                     return self.json_error("permission_denied", "You do not have permission to perform this action.", HTTPStatus.FORBIDDEN)
                 payload = self.read_json()
                 body = payload.get("body")
@@ -329,17 +332,116 @@ def build_handler(context: AppContext):
                 return
             params = parse_qs(query)
             page, page_size = self.page_args(params)
+            # POST /api/glossary/bulk — admin only
+            if parts == ["bulk"] and method == "POST":
+                if not self.require_role(user, "admin"):
+                    return
+                raw = self.read_json()
+                if isinstance(raw, dict):
+                    items = raw.get("items", [])
+                else:
+                    items = raw
+                if not isinstance(items, list):
+                    return self.json_error("validation_error", "Expected a JSON array of terms.", 400)
+                try:
+                    summary = db.bulk_upsert_glossary_terms(connection, items, user_id=user["id"])
+                    return self.json_response(summary)
+                except Exception as exc:
+                    return self.json_error("internal_error", str(exc), 500)
             if not parts and method == "GET":
                 payload = db.list_glossary(connection, limit=page_size, offset=(page - 1) * page_size)
                 payload.update({"page": page, "page_size": page_size})
                 return self.json_response(payload)
+            if not parts and method == "POST":
+                if not self.require_role(user, "editor"):
+                    return
+                payload = self.read_json()
+                try:
+                    term = db.create_glossary_term(connection, payload, user_id=user["id"])
+                    return self.json_response(term, HTTPStatus.CREATED)
+                except ValueError as exc:
+                    return self.json_error("validation_error", str(exc), HTTPStatus.BAD_REQUEST)
+                except Exception as exc:
+                    return self.json_error("conflict", str(exc), HTTPStatus.CONFLICT)
+            # GET /api/glossary/revisions/diff?a=<id>&b=<id>
+            if parts == ["revisions", "diff"] and method == "GET":
+                a_id = self.int_id(params.get("a", [""])[0])
+                b_id = self.int_id(params.get("b", [""])[0])
+                if a_id is None or b_id is None:
+                    return
+                diff_lines = db.term_revision_diff(connection, a_id, b_id)
+                if diff_lines is None:
+                    return self.json_error("not_found", "Revision not found.", HTTPStatus.NOT_FOUND)
+                return self.json_response({"diff": diff_lines})
+            # GET /api/glossary/revisions/{rid}
+            if len(parts) == 2 and parts[0] == "revisions" and method == "GET":
+                rid = self.int_id(parts[1])
+                if rid is None:
+                    return
+                rev = db.get_term_revision(connection, rid)
+                return self.json_response(rev) if rev else self.json_error("not_found", "Revision not found.", HTTPStatus.NOT_FOUND)
+            # POST /api/glossary/revisions/{rid}/restore
+            if len(parts) == 3 and parts[0] == "revisions" and parts[2] == "restore" and method == "POST":
+                if not self.require_role(user, "editor"):
+                    return
+                rid = self.int_id(parts[1])
+                if rid is None:
+                    return
+                term = db.restore_term_revision(connection, rid, user_id=user["id"])
+                return self.json_response(term) if term else self.json_error("not_found", "Revision not found.", HTTPStatus.NOT_FOUND)
             if len(parts) == 1 and method == "GET":
                 term_id = self.int_id(parts[0])
                 if term_id is None:
                     return
                 term = db.get_glossary_term(connection, term_id)
                 return self.json_response(term) if term else self.json_error("not_found", "Glossary term not found.", HTTPStatus.NOT_FOUND)
+            if len(parts) == 1 and method == "PUT":
+                if not self.require_role(user, "editor"):
+                    return
+                term_id = self.int_id(parts[0])
+                if term_id is None:
+                    return
+                payload = self.read_json()
+                try:
+                    term = db.update_glossary_term(connection, term_id, payload, user_id=user["id"])
+                except ValueError as exc:
+                    return self.json_error("validation_error", str(exc), HTTPStatus.BAD_REQUEST)
+                return self.json_response(term) if term else self.json_error("not_found", "Glossary term not found.", HTTPStatus.NOT_FOUND)
+            if len(parts) == 1 and method == "DELETE":
+                if not self.require_role(user, "editor"):
+                    return
+                term_id = self.int_id(parts[0])
+                if term_id is None:
+                    return
+                deleted = db.delete_glossary_term(connection, term_id)
+                return self.empty_response() if deleted else self.json_error("not_found", "Glossary term not found.", HTTPStatus.NOT_FOUND)
+            # GET /api/glossary/{id}/revisions
+            if len(parts) == 2 and parts[1] == "revisions" and method == "GET":
+                term_id = self.int_id(parts[0])
+                if term_id is None:
+                    return
+                revisions = db.list_term_revisions(connection, term_id)
+                return self.json_response({"items": revisions, "total": len(revisions)})
             return self.json_error("not_found", "Glossary endpoint not found.", HTTPStatus.NOT_FOUND)
+
+        def handle_settings(self, method, parts, connection, user):
+            # GET /api/settings — viewer permission
+            if not parts and method == "GET":
+                if not self.require_role(user, "viewer"):
+                    return
+                return self.json_response(db.list_settings(connection))
+            # PUT /api/settings/{key} — admin permission
+            if len(parts) == 1 and method == "PUT":
+                if not self.require_role(user, "admin"):
+                    return
+                key = parts[0]
+                payload = self.read_json()
+                value = payload.get("value")
+                if value is None or not isinstance(value, str):
+                    return self.json_error("validation_error", "value (string) is required.", 400)
+                db.set_setting(connection, key, value)
+                return self.json_response({"key": key, "value": value})
+            return self.json_error("not_found", "Settings endpoint not found.", 404)
 
         def handle_taxonomy(self, kind, method, parts, connection, user):
             if not self.require_role(user, "viewer"):
@@ -432,13 +534,24 @@ def build_handler(context: AppContext):
         def require_role(self, user, role):
             hierarchy = {"viewer": 1, "editor": 2, "admin": 3}
             if not user:
+                self._drain_request_body()
                 self.json_error("authentication_required", "Sign in is required.", HTTPStatus.UNAUTHORIZED)
                 return False
             max_role = max((hierarchy.get(candidate, 0) for candidate in user["roles"]), default=0)
             if max_role < hierarchy[role]:
+                self._drain_request_body()
                 self.json_error("permission_denied", "You do not have permission to perform this action.", HTTPStatus.FORBIDDEN)
                 return False
             return True
+
+        def _drain_request_body(self):
+            """Drain any unread request body to avoid connection reset on Windows."""
+            try:
+                length = int(self.headers.get("Content-Length", "0"))
+                if length > 0:
+                    self.rfile.read(length)
+            except Exception:
+                pass
 
         def page_args(self, params):
             page = max(int(params.get("page", ["1"])[0]), 1)

@@ -10,50 +10,152 @@
 <body>
   <div class="app-shell" data-app-mode="viewer" data-aux-open="false">
     <header class="topbar">
-      <button class="brand" type="button" data-action="show-documents" aria-label="Show documents" data-i18n-aria-label="show_documents">
-        <span class="brand-mark" aria-hidden="true"></span>
-        <span data-i18n="docs_short">Docs</span>
-      </button>
+      <div class="topbar-left">
+        <button class="brand" type="button" data-action="show-documents" aria-label="Show documents" data-i18n-aria-label="show_documents">
+          <span class="brand-mark" aria-hidden="true"></span>
+          <span class="brand-name">DocPlatform</span>
+        </button>
+        <nav class="app-tabs" aria-label="Workspace modes" data-i18n-aria-label="workspace_modes">
+          <button class="is-active" type="button" data-mode="viewer" data-i18n="viewer">Viewer</button>
+          <button type="button" data-mode="creator" data-role-min="editor" data-i18n="creator">Creator</button>
+        </nav>
+      </div>
 
       <form class="global-search" data-form="document-search">
         <label class="sr-only" for="document-search" data-i18n="search_documents">Search documents</label>
         <input id="document-search" name="q" type="search" placeholder="Search documents" data-i18n-placeholder="search_documents" autocomplete="off">
       </form>
 
-      <nav class="app-tabs" aria-label="Workspace modes" data-i18n-aria-label="workspace_modes">
-        <button class="is-active" type="button" data-mode="viewer" data-i18n="viewer">Viewer</button>
-        <button type="button" data-mode="creator" data-role-min="editor" data-i18n="creator">Creator</button>
-      </nav>
+      <div class="topbar-right">
+        <!-- New document — editor+ only -->
+        <button type="button" class="topbar-icon-button" data-action="new-document" data-role-min="editor" aria-label="New document" data-i18n-aria-label="new_document">
+          <i data-lucide="plus" aria-hidden="true"></i>
+          <span class="topbar-button-label" data-i18n="new">New</span>
+        </button>
 
-      <form id="login-form" class="login-form">
-        <label class="sr-only" for="login-username" data-i18n="username">Username</label>
-        <input id="login-username" name="username" placeholder="Username" data-i18n-placeholder="username">
-        <label class="sr-only" for="login-password" data-i18n="password">Password</label>
-        <input id="login-password" name="password" type="password" placeholder="Password" data-i18n-placeholder="password">
-        <button type="submit" data-i18n="sign_in">Sign in</button>
-      </form>
+        <!-- Aux panel toggle (Reference) -->
+        <button type="button" class="topbar-icon-button" data-action="toggle-aux" aria-label="Reference panels" data-i18n-aria-label="reference_panels">
+          <i data-lucide="panel-right" aria-hidden="true"></i>
+        </button>
 
-      <div class="topbar-actions">
-        <label class="language-control">
-          <span class="sr-only" data-i18n="language">Language</span>
-          <select id="language-select" aria-label="Language" data-i18n-aria-label="language">
-            <option value="en">English</option>
-            <option value="ja">日本語</option>
-          </select>
-        </label>
-        <span id="session-label" class="session-label"></span>
-        <button type="button" data-action="logout" data-auth-only data-i18n="sign_out">Sign out</button>
-        <button type="button" data-action="new-document" data-role-min="editor" data-i18n="new">New</button>
-        <button type="button" data-action="toggle-aux" data-i18n="panels">Panels</button>
+        <!-- Signed-OUT state: "Sign in" button opens modal -->
+        <button type="button" class="topbar-signin" data-action="open-login" data-auth-hidden data-i18n="sign_in">Sign in</button>
+
+        <!-- Signed-IN state: avatar pill that toggles a popover -->
+        <button type="button" class="avatar-pill" data-action="toggle-avatar-menu" data-auth-only aria-haspopup="menu" aria-expanded="false">
+          <span class="avatar-initials" id="avatar-initials">?</span>
+          <span class="avatar-name" id="avatar-name"></span>
+          <i data-lucide="chevron-down" aria-hidden="true"></i>
+        </button>
       </div>
     </header>
+
+    <!-- Avatar popover menu (sibling of header, inside .app-shell) -->
+    <div class="avatar-menu" id="avatar-menu" role="menu" hidden>
+      <div class="avatar-menu-header">
+        <strong id="avatar-menu-name"></strong>
+        <span class="muted" id="avatar-menu-role"></span>
+      </div>
+      <div class="avatar-menu-separator"></div>
+      <label class="avatar-menu-item avatar-menu-label">
+        <span data-i18n="language">Language</span>
+        <select id="language-select" aria-label="Language" data-i18n-aria-label="language">
+          <option value="en">English</option>
+          <option value="ja">日本語</option>
+        </select>
+      </label>
+      <button type="button" class="avatar-menu-item" role="menuitem" data-action="toggle-theme">
+        <i data-lucide="sun" aria-hidden="true"></i>
+        <span data-i18n="toggle_theme">Toggle theme</span>
+      </button>
+      <button type="button" class="avatar-menu-item" role="menuitem" data-action="toggle-glossary-autolink" data-role-min="admin">
+        <i data-lucide="link" aria-hidden="true"></i>
+        <span data-i18n="autolink_glossary">Auto-link glossary</span>
+        <span class="avatar-menu-status" id="autolink-status"></span>
+      </button>
+      <div class="avatar-menu-separator"></div>
+      <button type="button" class="avatar-menu-item is-danger" role="menuitem" data-action="logout" data-i18n="sign_out">Sign out</button>
+    </div>
+
+    <!-- Sign-in modal -->
+    <dialog id="login-dialog" class="login-dialog">
+      <form id="login-form" class="login-modal-form">
+        <div class="dialog-heading">
+          <h2 data-i18n="sign_in">Sign in</h2>
+          <button type="button" data-action="close-login" aria-label="Close" data-i18n-aria-label="close">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <label>
+          <span data-i18n="username">Username</span>
+          <input id="login-username" name="username" required autocomplete="username">
+        </label>
+        <label>
+          <span data-i18n="password">Password</span>
+          <input id="login-password" name="password" type="password" required autocomplete="current-password">
+        </label>
+        <div id="login-error" class="status-line" aria-live="polite"></div>
+        <div class="button-row metadata-actions">
+          <button type="button" data-action="close-login" data-i18n="cancel">Cancel</button>
+          <button class="primary" type="submit" data-i18n="sign_in">Sign in</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Bulk import dialog (admin only) -->
+    <dialog id="bulk-import-dialog" class="login-dialog">
+      <form id="bulk-import-form" class="login-modal-form">
+        <div class="dialog-heading">
+          <h2 data-i18n="bulk_import">Bulk import</h2>
+          <button type="button" data-action="close-bulk-import" aria-label="Close" data-i18n-aria-label="close">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p class="muted" data-i18n="bulk_import_help">Paste a JSON array of terms. Each item needs at minimum a "term" field.</p>
+        <label>
+          <span data-i18n="json">JSON</span>
+          <textarea name="json" rows="10" placeholder='[{"term": "Async IO", "description_markdown": "..."}]' required></textarea>
+        </label>
+        <div id="bulk-import-status" class="status-line"></div>
+        <div class="button-row metadata-actions">
+          <button type="button" data-action="close-bulk-import" data-i18n="cancel">Cancel</button>
+          <button class="primary" type="submit" data-i18n="import">Import</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Keyboard shortcuts dialog -->
+    <dialog id="shortcuts-dialog" class="shortcuts-dialog">
+      <div class="shortcuts-modal">
+        <div class="dialog-heading">
+          <h2 data-i18n="shortcuts_title">Keyboard shortcuts</h2>
+          <button type="button" data-action="close-shortcuts" aria-label="Close" data-i18n-aria-label="close">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <dl class="shortcuts-grid">
+          <dt><kbd>Ctrl</kbd>+<kbd>B</kbd></dt><dd data-i18n="format_bold">Bold</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>I</kbd></dt><dd data-i18n="format_italic">Italic</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>K</kbd></dt><dd data-i18n="format_link">Link</dd>
+          <dt><kbd>Ctrl</kbd>+<kbd>/</kbd></dt><dd data-i18n="shortcuts_open_help">Open keyboard shortcuts</dd>
+          <dt><kbd>Esc</kbd></dt><dd data-i18n="shortcuts_esc">Close dialogs and drawers</dd>
+        </dl>
+      </div>
+    </dialog>
 
     <aside class="document-rail" aria-label="Documents" data-i18n-aria-label="documents">
       <div class="rail-heading">
         <h1 data-i18n="documents">Documents</h1>
-        <span id="document-count" class="muted"></span>
+        <div class="rail-heading-actions">
+          <button type="button" class="rail-filter-button" data-action="toggle-rail-filters" aria-label="Filter documents" data-i18n-aria-label="filter_documents" aria-expanded="false">
+            <i data-lucide="filter" aria-hidden="true"></i>
+            <span class="rail-filter-dot" id="rail-filter-active-dot" hidden></span>
+          </button>
+          <span id="document-count" class="muted"></span>
+        </div>
       </div>
-      <div class="document-organizer" aria-label="Document organization filters" data-i18n-aria-label="document_organizer">
+
+      <div class="document-organizer" id="rail-filter-popover" aria-label="Document organization filters" data-i18n-aria-label="document_organizer" hidden>
         <label>
           <span data-i18n="filter_category">Category</span>
           <select id="document-category-filter"></select>
@@ -75,15 +177,28 @@
         </label>
         <button type="button" data-action="clear-document-filters" data-i18n="clear_filters">Clear filters</button>
       </div>
+
       <div id="document-list-status" class="status-line" aria-live="polite"></div>
-      <ol id="document-list" class="document-list"></ol>
+      <div id="document-list" class="document-tree" role="tree" aria-label="Document tree" data-i18n-aria-label="document_tree"></div>
     </aside>
 
     <main class="workspace">
       <section id="viewer-mode" class="app-mode is-active" aria-label="Viewer" data-i18n-aria-label="viewer">
         <div id="document-empty" class="empty-state">
-          <h2 data-i18n="select_document">Select a document</h2>
-          <p data-i18n="choose_document_hint">Choose a document from the list or create a new one.</p>
+          <div class="empty-card">
+            <div class="empty-icon"><i data-lucide="book-open" aria-hidden="true"></i></div>
+            <h2 data-i18n="empty_welcome_title">Welcome to DocPlatform</h2>
+            <p data-i18n="empty_welcome_subtitle">Select a document from the list to read, or create a new one.</p>
+            <div class="empty-actions">
+              <button class="primary" type="button" data-action="new-document" data-role-min="editor" data-i18n="empty_action_new">Create document</button>
+              <button type="button" data-action="show-shortcuts" data-i18n="empty_action_shortcuts">Keyboard shortcuts</button>
+            </div>
+            <ul class="empty-tips muted">
+              <li data-i18n="empty_tip_search">Use the search box to quickly find documents.</li>
+              <li data-i18n="empty_tip_wiki">Type [[term]] to link to glossary pages.</li>
+              <li data-i18n="empty_tip_shortcuts">Press Ctrl+/ for keyboard shortcuts.</li>
+            </ul>
+          </div>
         </div>
 
         <article id="document-detail" class="document-detail" hidden>
@@ -92,53 +207,110 @@
               <p id="document-context" class="eyebrow"></p>
               <h2 id="document-title"></h2>
             </div>
-            <div id="document-meta" class="meta-row"></div>
+            <div class="document-header-actions">
+              <div id="document-meta" class="meta-row"></div>
+              <button type="button" class="comments-toggle" data-action="toggle-comments" aria-label="Open comments" data-i18n-aria-label="open_comments" hidden>
+                <i data-lucide="message-square" aria-hidden="true"></i>
+                <span class="comments-count-badge" id="comments-count-badge" data-empty="true">0</span>
+              </button>
+            </div>
           </header>
           <p id="document-summary" class="document-summary"></p>
+          <div id="document-related-terms" class="related-terms-row" hidden>
+            <span class="related-terms-label" data-i18n="related_terms">Related terms</span>
+            <div id="document-related-terms-chips" class="related-terms-chips"></div>
+          </div>
           <div id="viewer-plugin-panels" class="plugin-panel-host document-plugin-panel-host"></div>
           <div id="document-markdown" class="markdown-body"></div>
+          <nav id="document-toc" class="document-toc" aria-label="Table of contents" data-i18n-aria-label="table_of_contents" hidden>
+            <p class="document-toc-heading" data-i18n="table_of_contents">Contents</p>
+            <ol id="document-toc-list" class="document-toc-list"></ol>
+          </nav>
+        </article>
 
-          <section id="comments-panel" class="document-panel comments-panel">
-            <div class="panel-heading">
-              <h3 data-i18n="comments">Comments</h3>
-              <button type="button" data-action="refresh-comments" data-i18n="refresh">Refresh</button>
+        <article id="glossary-index" class="document-detail glossary-index" hidden>
+          <header class="document-header">
+            <div>
+              <p class="eyebrow" data-i18n="glossary">Glossary</p>
+              <h2 data-i18n="glossary_all_terms">All terms</h2>
             </div>
-            <div id="comments-status" class="status-line" aria-live="polite"></div>
-            <ol id="comment-list" class="comment-list"></ol>
+            <div class="glossary-index-actions">
+              <button type="button" data-action="open-bulk-import" data-role-min="admin" data-i18n="bulk_import">Bulk import</button>
+              <button type="button" data-action="new-term" data-role-min="editor" data-i18n="new_term">New term</button>
+            </div>
+          </header>
 
-            <form id="comment-form" class="comment-form">
-              <div class="field-grid comment-target-grid">
+          <div class="glossary-index-toolbar">
+            <label class="glossary-index-search">
+              <span class="sr-only" data-i18n="search_glossary">Search glossary</span>
+              <input id="glossary-index-search" type="search" placeholder="Filter terms" data-i18n-placeholder="filter_terms">
+            </label>
+            <label>
+              <span class="sr-only" data-i18n="filter_tag">Tag</span>
+              <select id="glossary-index-tag-filter"></select>
+            </label>
+            <label>
+              <span class="sr-only" data-i18n="sort_by">Sort</span>
+              <select id="glossary-index-sort">
+                <option value="term_asc" data-i18n="sort_term_asc">A-Z</option>
+                <option value="term_desc" data-i18n="sort_term_desc">Z-A</option>
+                <option value="updated_desc" data-i18n="sort_updated_desc">Recently updated</option>
+              </select>
+            </label>
+          </div>
+
+          <ol id="glossary-index-list" class="glossary-index-list"></ol>
+        </article>
+
+        <article id="term-detail" class="document-detail term-detail" hidden>
+          <header class="document-header term-detail-header">
+            <div>
+              <p class="eyebrow" data-i18n="glossary">Glossary</p>
+              <h2 id="term-detail-title"></h2>
+            </div>
+            <div class="term-detail-actions">
+              <button type="button" data-action="back-to-document" data-i18n="back_to_document" id="term-back-button">Back to document</button>
+              <button type="button" data-action="edit-term" data-role-min="editor" data-i18n="edit_term">Edit term</button>
+              <button type="button" data-action="delete-term" data-role-min="editor" data-i18n="delete_term">Delete term</button>
+            </div>
+          </header>
+
+          <nav class="term-detail-tabs" aria-label="Term sections" data-i18n-aria-label="term_sections">
+            <button type="button" class="is-active" data-term-tab="overview" data-i18n="overview">Overview</button>
+            <button type="button" data-term-tab="history" data-i18n="history">History</button>
+          </nav>
+
+          <div id="term-section-overview" class="term-section is-active">
+            <div id="term-detail-tags" class="meta-row"></div>
+            <div id="term-detail-description" class="markdown-body"></div>
+            <section class="term-related-documents">
+              <h3 data-i18n="related_documents">Related documents</h3>
+              <div id="term-related-documents-status" class="status-line"></div>
+              <ol id="term-related-documents-list" class="related-documents-list"></ol>
+            </section>
+          </div>
+
+          <div id="term-section-history" class="term-section" hidden>
+            <ol id="term-revision-list" class="revision-list" aria-label="Term revision history" data-i18n-aria-label="term_revision_list"></ol>
+            <section class="diff-pane">
+              <div class="diff-controls">
                 <label>
-                  <span data-i18n="target">Target</span>
-                  <select name="target_type">
-                    <option value="document" data-i18n="document">Document</option>
-                    <option value="text_selection" data-i18n="text_selection">Text selection</option>
-                    <option value="image" data-i18n="image">Image</option>
-                    <option value="mermaid_block" data-i18n="mermaid_block">Mermaid block</option>
-                  </select>
+                  <span data-i18n="revision">Revision</span>
+                  <select id="term-diff-target"></select>
                 </label>
-                <label id="comment-image-field" hidden>
-                  <span data-i18n="image">Image</span>
-                  <select id="comment-image-target"></select>
+                <label>
+                  <span data-i18n="against">Against</span>
+                  <select id="term-diff-against"></select>
                 </label>
-                <label id="comment-mermaid-field" hidden>
-                  <span data-i18n="mermaid_block">Mermaid block</span>
-                  <select id="comment-mermaid-target"></select>
-                </label>
+                <div class="button-row">
+                  <button type="button" data-action="load-term-diff" data-i18n="compare">Compare</button>
+                  <button type="button" data-action="restore-term-revision" data-role-min="editor" data-i18n="restore">Restore</button>
+                </div>
               </div>
-              <div class="comment-target-row">
-                <button type="button" data-action="capture-text-target" data-i18n="use_selection">Use selection</button>
-                <span id="comment-target-summary" class="muted"></span>
-              </div>
-              <label>
-                <span data-i18n="comment">Comment</span>
-                <textarea name="body" rows="3" required></textarea>
-              </label>
-              <div class="button-row">
-                <button class="primary" type="submit" data-i18n="add_comment">Add comment</button>
-              </div>
-            </form>
-          </section>
+              <div id="term-diff-status" class="status-line"></div>
+              <pre id="term-diff-output" class="diff-output"></pre>
+            </section>
+          </div>
         </article>
       </section>
 
@@ -163,37 +335,95 @@
 
           <section id="edit-view" class="creator-view is-active" aria-label="Document editor" data-i18n-aria-label="document_editor">
             <h2 id="editor-heading" class="sr-only" data-i18n="edit_document">Edit document</h2>
-            <form id="editor-form" class="editor-form creator-workbench">
+            <form id="editor-form" class="editor-form">
+              <div class="editor-title-bar">
+                <input name="title" placeholder="Document title" data-i18n-placeholder="document_title_placeholder" required autocomplete="off">
+              </div>
+
+              <!-- Ribbon: tab strip + tab panels -->
+              <div class="ribbon">
+                <nav class="ribbon-tabs" aria-label="Editor ribbon" data-i18n-aria-label="editor_ribbon" role="tablist">
+                  <button type="button" role="tab" class="is-active" data-ribbon-tab="home" id="ribbon-tab-home" aria-controls="ribbon-panel-home" aria-selected="true" data-i18n="ribbon_home">Home</button>
+                  <button type="button" role="tab" data-ribbon-tab="insert" id="ribbon-tab-insert" aria-controls="ribbon-panel-insert" aria-selected="false" data-i18n="ribbon_insert">Insert</button>
+                  <button type="button" role="tab" data-ribbon-tab="extensions" id="ribbon-tab-extensions" aria-controls="ribbon-panel-extensions" aria-selected="false" data-i18n="ribbon_extensions">Extensions</button>
+                  <button type="button" role="tab" data-ribbon-tab="view" id="ribbon-tab-view" aria-controls="ribbon-panel-view" aria-selected="false" data-i18n="ribbon_view">View</button>
+                </nav>
+
+                <!-- Home tab: format + structure -->
+                <div class="ribbon-panel is-active" id="ribbon-panel-home" role="tabpanel" aria-labelledby="ribbon-tab-home">
+                  <div class="ribbon-group">
+                    <div class="ribbon-group-label" data-i18n="format">Format</div>
+                    <div class="ribbon-group-body">
+                      <button type="button" class="format-btn" data-format-action="bold" aria-label="Bold" data-i18n-aria-label="format_bold"><i data-lucide="bold" aria-hidden="true"></i></button>
+                      <button type="button" class="format-btn" data-format-action="italic" aria-label="Italic" data-i18n-aria-label="format_italic"><i data-lucide="italic" aria-hidden="true"></i></button>
+                      <button type="button" class="format-btn" data-format-action="inline-code" aria-label="Inline code" data-i18n-aria-label="format_inline_code"><i data-lucide="code" aria-hidden="true"></i></button>
+                      <button type="button" class="format-btn" data-format-action="link" aria-label="Link" data-i18n-aria-label="format_link"><i data-lucide="link" aria-hidden="true"></i></button>
+                      <button type="button" class="format-btn" data-format-action="wiki-link" aria-label="Wiki link" data-i18n-aria-label="format_wiki_link"><i data-lucide="link-2" aria-hidden="true"></i></button>
+                      <button type="button" class="format-btn" data-action="promote-to-term" aria-label="Promote selection to term" data-i18n-aria-label="promote_to_term"><i data-lucide="sparkles" aria-hidden="true"></i></button>
+                    </div>
+                  </div>
+                  <div class="ribbon-group">
+                    <div class="ribbon-group-label" data-i18n="structure">Structure</div>
+                    <div class="ribbon-group-body">
+                      <button type="button" class="format-btn" data-format-action="heading" aria-label="Heading" data-i18n-aria-label="format_heading"><i data-lucide="heading" aria-hidden="true"></i></button>
+                      <button type="button" class="format-btn" data-format-action="ul" aria-label="Bulleted list" data-i18n-aria-label="format_unordered_list"><i data-lucide="list" aria-hidden="true"></i></button>
+                      <button type="button" class="format-btn" data-format-action="ol" aria-label="Numbered list" data-i18n-aria-label="format_ordered_list"><i data-lucide="list-ordered" aria-hidden="true"></i></button>
+                      <button type="button" class="format-btn" data-format-action="quote" aria-label="Quote" data-i18n-aria-label="format_quote"><i data-lucide="quote" aria-hidden="true"></i></button>
+                      <button type="button" class="format-btn" data-format-action="code-block" aria-label="Code block" data-i18n-aria-label="format_code_block"><i data-lucide="square-code" aria-hidden="true"></i></button>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Insert tab: block insertion + image upload -->
+                <div class="ribbon-panel" id="ribbon-panel-insert" role="tabpanel" aria-labelledby="ribbon-tab-insert" hidden>
+                  <div class="ribbon-group">
+                    <div class="ribbon-group-label" data-i18n="blocks">Blocks</div>
+                    <div class="ribbon-group-body" id="ribbon-insert-blocks">
+                      <!-- populated dynamically by JS from getAvailableInsertBlocks() -->
+                    </div>
+                  </div>
+                  <div class="ribbon-group">
+                    <div class="ribbon-group-label" data-i18n="image_attachment">Image attachment</div>
+                    <div class="ribbon-group-body ribbon-image-upload">
+                      <input id="attachment-file" type="file" accept="image/*">
+                      <button type="button" data-action="upload-image" data-role-min="editor" class="ribbon-cta" data-i18n="upload_and_insert">Upload and insert</button>
+                      <div id="attachment-status" class="status-line" aria-live="polite"></div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- Extensions tab: plugin panels -->
+                <div class="ribbon-panel" id="ribbon-panel-extensions" role="tabpanel" aria-labelledby="ribbon-tab-extensions" hidden>
+                  <div id="creator-plugin-panels" class="plugin-panel-host creator-plugin-panel-host ribbon-plugin-host"></div>
+                  <p class="muted ribbon-extensions-empty" data-i18n="no_extensions_active">No extensions are active.</p>
+                </div>
+
+                <!-- View tab: preview mode toggle -->
+                <div class="ribbon-panel" id="ribbon-panel-view" role="tabpanel" aria-labelledby="ribbon-tab-view" hidden>
+                  <div class="ribbon-group">
+                    <div class="ribbon-group-label" data-i18n="preview_mode">Preview mode</div>
+                    <div class="ribbon-group-body">
+                      <nav class="preview-mode-toggle" aria-label="Preview mode" data-i18n-aria-label="preview_mode">
+                        <button type="button" class="is-active" data-preview-mode="split" data-i18n="preview_mode_split">Split</button>
+                        <button type="button" data-preview-mode="editor" data-i18n="preview_mode_editor">Editor</button>
+                        <button type="button" data-preview-mode="preview" data-i18n="preview_mode_preview">Preview</button>
+                      </nav>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
               <div id="editor-status" class="status-line" aria-live="polite"></div>
 
-              <section class="writing-stage" aria-label="Markdown editor" data-i18n-aria-label="markdown_editor">
-                <div class="editor-toolbar">
-                  <button class="insert-trigger" type="button" data-action="toggle-insert-menu" aria-label="Insert block" data-i18n-aria-label="insert_block" aria-controls="insert-menu" aria-expanded="false">
-                    <i data-lucide="plus" aria-hidden="true"></i>
-                  </button>
-                  <div id="insert-menu" class="insert-menu" hidden></div>
-                </div>
+              <section class="writing-stage" aria-label="Markdown editor" data-i18n-aria-label="markdown_editor" data-preview-mode="split">
                 <label class="markdown-input body-editor">
                   <span class="sr-only" data-i18n="markdown">Markdown</span>
                   <textarea name="content_markdown"></textarea>
                 </label>
+                <div class="markdown-preview-pane" aria-label="Markdown preview" data-i18n-aria-label="markdown_preview">
+                  <div id="editor-live-preview" class="markdown-body"></div>
+                </div>
               </section>
-
-              <aside class="creator-inspector">
-                <div id="creator-plugin-panels" class="plugin-panel-host creator-plugin-panel-host"></div>
-
-                <details class="editor-panel attachment-panel" data-role-min="editor">
-                  <summary data-i18n="image_attachment">Image attachment</summary>
-                  <div class="attachment-upload-row">
-                    <label>
-                      <span data-i18n="image_file">Image file</span>
-                      <input id="attachment-file" type="file" accept="image/*">
-                    </label>
-                    <button type="button" data-action="upload-image" data-i18n="upload_and_insert">Upload and insert</button>
-                  </div>
-                  <div id="attachment-status" class="status-line" aria-live="polite"></div>
-                </details>
-              </aside>
 
               <dialog id="metadata-dialog" class="metadata-dialog" aria-labelledby="metadata-dialog-title">
                 <div class="metadata-form">
@@ -203,17 +433,11 @@
                       <i data-lucide="x" aria-hidden="true"></i>
                     </button>
                   </div>
-                  <div class="field-grid">
-                    <label>
-                      <span data-i18n="title">Title</span>
-                      <input name="title" required>
-                    </label>
-                    <label>
-                      <span data-i18n="slug">Slug</span>
-                      <input name="slug" required>
-                      <span class="field-help" data-i18n="slug_help">Short name used in the URL.</span>
-                    </label>
-                  </div>
+                  <label>
+                    <span data-i18n="slug">Slug</span>
+                    <input name="slug" required>
+                    <span class="field-help" data-i18n="slug_help">Short name used in the URL.</span>
+                  </label>
                   <label>
                     <span data-i18n="summary">Summary</span>
                     <textarea name="summary" rows="4"></textarea>
@@ -264,6 +488,105 @@
             </form>
           </section>
 
+          <dialog id="term-editor-dialog" class="term-editor-dialog">
+            <form id="term-editor-form" class="term-editor-form">
+              <div class="dialog-heading">
+                <h2 id="term-editor-title" data-i18n="new_term">New term</h2>
+                <button type="button" data-action="close-term-editor" aria-label="Close" data-i18n-aria-label="close">
+                  <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+              </div>
+
+              <div class="term-editor-meta">
+                <label class="term-editor-name">
+                  <span data-i18n="term">Term</span>
+                  <input name="term" required autocomplete="off">
+                </label>
+
+                <label>
+                  <span data-i18n="slug">Slug</span>
+                  <input name="slug" autocomplete="off">
+                  <span class="field-help"><span data-i18n="slug_help">Short name used in the URL.</span></span>
+                  <span class="slug-preview" id="term-slug-preview" hidden></span>
+                </label>
+
+                <label>
+                  <span data-i18n="aliases">Aliases</span>
+                  <textarea name="aliases" rows="2" placeholder="One alias per line" data-i18n-placeholder="aliases_placeholder"></textarea>
+                  <span class="field-help" data-i18n="aliases_help">Alternative names that also match [[wiki links]].</span>
+                </label>
+
+                <fieldset class="tag-fieldset">
+                  <legend data-i18n="own_tags">Tags</legend>
+                  <div id="term-editor-tags" class="tag-selector"></div>
+                </fieldset>
+
+                <div class="term-editor-usedin" id="term-editor-usedin" hidden>
+                  <div class="term-editor-usedin-header">
+                    <span class="term-editor-description-label" data-i18n="used_in">Used in</span>
+                    <span class="muted" id="term-editor-usedin-count"></span>
+                  </div>
+                  <ol id="term-editor-usedin-list" class="term-editor-usedin-list"></ol>
+                </div>
+              </div>
+
+              <div class="term-editor-description">
+                <div class="term-editor-description-header">
+                  <span class="term-editor-description-label" data-i18n="description">Description</span>
+                  <div class="format-toolbar term-format-toolbar" data-format-target="term">
+                    <button type="button" class="format-btn" data-format-action="bold" data-format-target="term" aria-label="Bold" data-i18n-aria-label="format_bold"><i data-lucide="bold" aria-hidden="true"></i></button>
+                    <button type="button" class="format-btn" data-format-action="italic" data-format-target="term" aria-label="Italic" data-i18n-aria-label="format_italic"><i data-lucide="italic" aria-hidden="true"></i></button>
+                    <button type="button" class="format-btn" data-format-action="inline-code" data-format-target="term" aria-label="Inline code" data-i18n-aria-label="format_inline_code"><i data-lucide="code" aria-hidden="true"></i></button>
+                    <button type="button" class="format-btn" data-format-action="link" data-format-target="term" aria-label="Link" data-i18n-aria-label="format_link"><i data-lucide="link" aria-hidden="true"></i></button>
+                    <button type="button" class="format-btn" data-format-action="wiki-link" data-format-target="term" aria-label="Wiki link" data-i18n-aria-label="format_wiki_link"><i data-lucide="link-2" aria-hidden="true"></i></button>
+                    <span class="format-toolbar-separator"></span>
+                    <button type="button" class="format-btn" data-format-action="heading" data-format-target="term" aria-label="Heading" data-i18n-aria-label="format_heading"><i data-lucide="heading" aria-hidden="true"></i></button>
+                    <button type="button" class="format-btn" data-format-action="ul" data-format-target="term" aria-label="Bulleted list" data-i18n-aria-label="format_unordered_list"><i data-lucide="list" aria-hidden="true"></i></button>
+                    <button type="button" class="format-btn" data-format-action="ol" data-format-target="term" aria-label="Numbered list" data-i18n-aria-label="format_ordered_list"><i data-lucide="list-ordered" aria-hidden="true"></i></button>
+                    <button type="button" class="format-btn" data-format-action="quote" data-format-target="term" aria-label="Quote" data-i18n-aria-label="format_quote"><i data-lucide="quote" aria-hidden="true"></i></button>
+                    <button type="button" class="format-btn" data-format-action="code-block" data-format-target="term" aria-label="Code block" data-i18n-aria-label="format_code_block"><i data-lucide="square-code" aria-hidden="true"></i></button>
+                  </div>
+                </div>
+                <div class="term-editor-split">
+                  <label class="term-editor-input">
+                    <span class="sr-only" data-i18n="description">Description</span>
+                    <textarea name="description_markdown" id="term-editor-description-textarea" rows="14"></textarea>
+                  </label>
+                  <div class="term-editor-preview markdown-body" id="term-editor-live-preview"></div>
+                </div>
+              </div>
+
+              <div class="button-row metadata-actions">
+                <button type="button" data-action="close-term-editor" data-i18n="cancel">Cancel</button>
+                <button class="primary" type="submit" data-i18n="save">Save</button>
+              </div>
+            </form>
+          </dialog>
+
+          <dialog id="delete-term-dialog" class="delete-term-dialog">
+            <div class="delete-term-body">
+              <div class="dialog-heading">
+                <h2 data-i18n="delete_term">Delete term</h2>
+                <button type="button" data-action="close-delete-term" aria-label="Close" data-i18n-aria-label="close">
+                  <i data-lucide="x" aria-hidden="true"></i>
+                </button>
+              </div>
+              <p id="delete-term-question"></p>
+              <div id="delete-term-warning-region" class="delete-term-warning" hidden></div>
+              <ol id="delete-term-usedin-list" class="delete-term-usedin"></ol>
+              <div id="delete-term-confirm-region" class="delete-term-confirm-row" hidden>
+                <label>
+                  <span id="delete-term-confirm-label"></span>
+                  <input id="delete-term-confirm-input" type="text" autocomplete="off">
+                </label>
+              </div>
+              <div class="delete-term-actions">
+                <button type="button" data-action="close-delete-term" data-i18n="cancel">Cancel</button>
+                <button type="button" id="delete-term-confirm-button" class="danger" data-action="confirm-delete-term" data-i18n="delete">Delete</button>
+              </div>
+            </div>
+          </dialog>
+
           <section id="preview-view" class="creator-view" aria-label="Document preview" data-i18n-aria-label="document_preview">
             <article id="creator-preview" class="document-detail">
               <header class="document-header">
@@ -311,6 +634,53 @@
       </section>
     </main>
 
+    <section id="comments-panel" class="comments-panel" aria-label="Comments" data-i18n-aria-label="comments">
+      <div class="panel-heading">
+        <h3 data-i18n="comments">Comments</h3>
+        <div class="comments-panel-actions">
+          <button type="button" data-action="refresh-comments" data-i18n="refresh">Refresh</button>
+          <button type="button" class="drawer-close" data-action="close-comments" aria-label="Close" data-i18n-aria-label="close">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+      </div>
+      <div id="comments-status" class="status-line" aria-live="polite"></div>
+      <ol id="comment-list" class="comment-list"></ol>
+
+      <form id="comment-form" class="comment-form">
+        <div class="field-grid comment-target-grid">
+          <label>
+            <span data-i18n="target">Target</span>
+            <select name="target_type">
+              <option value="document" data-i18n="document">Document</option>
+              <option value="text_selection" data-i18n="text_selection">Text selection</option>
+              <option value="image" data-i18n="image">Image</option>
+              <option value="mermaid_block" data-i18n="mermaid_block">Mermaid block</option>
+            </select>
+          </label>
+          <label id="comment-image-field" hidden>
+            <span data-i18n="image">Image</span>
+            <select id="comment-image-target"></select>
+          </label>
+          <label id="comment-mermaid-field" hidden>
+            <span data-i18n="mermaid_block">Mermaid block</span>
+            <select id="comment-mermaid-target"></select>
+          </label>
+        </div>
+        <div class="comment-target-row">
+          <button type="button" data-action="capture-text-target" data-i18n="use_selection">Use selection</button>
+          <span id="comment-target-summary" class="muted"></span>
+        </div>
+        <label>
+          <span data-i18n="comment">Comment</span>
+          <textarea name="body" rows="3" required></textarea>
+        </label>
+        <div class="button-row">
+          <button class="primary" type="submit" data-i18n="add_comment">Add comment</button>
+        </div>
+      </form>
+    </section>
+
     <aside class="auxiliary-panel" aria-label="Reference panels" data-i18n-aria-label="reference_panels">
       <nav class="panel-tabs" aria-label="Auxiliary panels" data-i18n-aria-label="auxiliary_panels">
         <button class="is-active" type="button" data-panel="glossary" data-i18n="glossary">Glossary</button>
@@ -318,6 +688,11 @@
       </nav>
 
       <section id="glossary-panel" class="aux-panel is-active" aria-label="Glossary" data-i18n-aria-label="glossary">
+        <div class="panel-heading">
+          <span data-i18n="glossary">Glossary</span>
+          <button type="button" data-action="new-term" data-role-min="editor" data-i18n="new_term">New term</button>
+        </div>
+        <button type="button" class="glossary-view-all-button" data-action="show-glossary-index" data-i18n="view_all_terms">View all terms</button>
         <label class="panel-search">
           <span class="sr-only" data-i18n="search_glossary">Search glossary</span>
           <input id="glossary-search" type="search" placeholder="Filter terms" data-i18n-placeholder="filter_terms">
