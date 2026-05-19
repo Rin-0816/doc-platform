@@ -1,0 +1,19 @@
+{
+  "id": "{{PLUGIN_ID}}",
+  "name": "{{PLUGIN_NAME}}",
+  "version": "0.1.0",
+  "requires_core": ">=0.1.0 <1.0.0",
+  "plugin_api": ">=0.1.0 <1.0.0",
+  "capabilities": {{CAPABILITIES_JSON}},
+  "dependencies": [],
+  "runtime": "./runtime.py",
+  "frontend": "./frontend.js",
+  "description": "{{PLUGIN_DESCRIPTION}}",
+  "author": "doc-platform",
+  "migrations": [
+    {
+      "version": "0001",
+      "path": "./migrations/0001_initial.sql"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "document_metadata": {
+    "table": "{{PLUGIN_ID}}_metadata",
+    "fields": []
+  },
+  "content_types": [],
+  "templates": [],
+  "view_panels": [
+    {
+      "id": "{{PLUGIN_ID}}_summary",
+      "metadata_fields": []
+    }
+  ],
+  "edit_panels": [
+    {
+      "id": "{{PLUGIN_ID}}_metadata",
+      "metadata_fields": []
+    }
+  ],
+  "validators": [],
+  "search_extensions": []
+}
