@@ -136,7 +136,12 @@ def build_handler(context: AppContext):
             params = parse_qs(query)
             if not parts and method == "GET":
                 page, page_size = self.page_args(params)
-                payload = db.list_documents(connection, limit=page_size, offset=(page - 1) * page_size)
+                payload = db.list_documents(
+                    connection,
+                    limit=page_size,
+                    offset=(page - 1) * page_size,
+                    sort=params.get("sort", ["updated_desc"])[0],
+                )
                 payload.update({"page": page, "page_size": page_size})
                 return self.json_response(payload)
             if not parts and method == "POST":
@@ -388,6 +393,7 @@ def build_handler(context: AppContext):
                     category_id=category_id,
                     lesson_id=lesson_id,
                     tag=params.get("tag", [None])[0],
+                    sort=params.get("sort", ["updated_desc"])[0],
                 )
             else:
                 return self.json_error("validation_error", "type must be document or glossary.", HTTPStatus.BAD_REQUEST)

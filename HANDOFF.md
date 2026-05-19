@@ -34,7 +34,7 @@ Implemented:
 - image attachment upload/file serving
 - comment creation/listing/update/status APIs with target validation
 - text comment re-anchoring and orphan handling
-- SQLite FTS search with document category/lesson/tag filters and glossary search
+- SQLite FTS search with document category/lesson/tag filters, sorting, and glossary search
 - plugin discovery, registry sync, compatibility checks, migration execution
 - generic plugin runtime delegation for document plugin data load/save/restore
 - plugin frontend module discovery and serving
@@ -50,7 +50,7 @@ Implemented:
 Implemented:
 
 - login form
-- document list and search
+- document list, organization filters, sorting, and search
 - document detail rendering
 - Markdown preview and Mermaid rendering
 - editor view

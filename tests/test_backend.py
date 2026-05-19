@@ -306,10 +306,27 @@ class HttpApiTests(unittest.TestCase):
         self.assertEqual(document["category"]["name"], "Security Ops")
         self.assertEqual(document["lesson"]["name"], "Incident Review")
         self.assertEqual(document["tags"][0]["name"], "Runbook")
+        status, _, _ = self.request(
+            "POST",
+            "/api/documents",
+            {
+                "title": "A taxonomy doc",
+                "slug": "a-taxonomy-doc",
+                "content_markdown": "body",
+                "category_id": category["id"],
+            },
+            cookie,
+        )
+        self.assertEqual(status, 201)
 
-        status, payload, _ = self.request("GET", f"/api/search?category_id={category['id']}", cookie=cookie)
+        status, payload, _ = self.request(
+            "GET",
+            f"/api/search?category_id={category['id']}&sort=title_asc",
+            cookie=cookie,
+        )
         self.assertEqual(status, 200)
-        self.assertEqual(payload["total"], 1)
+        self.assertEqual(payload["total"], 2)
+        self.assertEqual(payload["items"][0]["title"], "A taxonomy doc")
 
         status, payload, _ = self.request("GET", "/api/search?category_id=999999", cookie=cookie)
         self.assertEqual(status, 200)

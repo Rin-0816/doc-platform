@@ -53,6 +53,28 @@
         <h1 data-i18n="documents">Documents</h1>
         <span id="document-count" class="muted"></span>
       </div>
+      <div class="document-organizer" aria-label="Document organization filters" data-i18n-aria-label="document_organizer">
+        <label>
+          <span data-i18n="filter_category">Category</span>
+          <select id="document-category-filter"></select>
+        </label>
+        <label>
+          <span data-i18n="filter_lesson">Lesson</span>
+          <select id="document-lesson-filter"></select>
+        </label>
+        <label>
+          <span data-i18n="filter_tag">Tag</span>
+          <select id="document-tag-filter"></select>
+        </label>
+        <label>
+          <span data-i18n="sort_by">Sort</span>
+          <select id="document-sort">
+            <option value="updated_desc" data-i18n="sort_updated_desc">Recently updated</option>
+            <option value="title_asc" data-i18n="sort_title_asc">Title A-Z</option>
+          </select>
+        </label>
+        <button type="button" data-action="clear-document-filters" data-i18n="clear_filters">Clear filters</button>
+      </div>
       <div id="document-list-status" class="status-line" aria-live="polite"></div>
       <ol id="document-list" class="document-list"></ol>
     </aside>
@@ -189,6 +211,7 @@
                     <label>
                       <span data-i18n="slug">Slug</span>
                       <input name="slug" required>
+                      <span class="field-help" data-i18n="slug_help">Short name used in the URL.</span>
                     </label>
                   </div>
                   <label>

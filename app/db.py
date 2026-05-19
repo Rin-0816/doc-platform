@@ -252,10 +252,10 @@ def seed_core_data(connection: sqlite3.Connection) -> None:
             (user_id, role_id),
         )
     connection.execute(
-        "INSERT OR IGNORE INTO categories (id, name, slug) VALUES (1, 'General', 'general')"
+        "INSERT OR IGNORE INTO categories (id, name, slug) VALUES (1, '未分類', 'general')"
     )
     connection.execute(
-        "INSERT OR IGNORE INTO lessons (id, name, slug, position) VALUES (1, 'Getting Started', 'getting-started', 1)"
+        "INSERT OR IGNORE INTO lessons (id, name, slug, position) VALUES (1, 'はじめに', 'getting-started', 1)"
     )
     connection.execute(
         """
@@ -302,6 +302,7 @@ def list_documents(
     category_id: int | None = None,
     lesson_id: int | None = None,
     tag: str | None = None,
+    sort: str = "updated_desc",
 ) -> dict[str, Any]:
     clauses = ["d.deleted_at IS NULL"]
     values: list[Any] = []
@@ -329,13 +330,17 @@ def list_documents(
 
     where = " AND ".join(clauses)
     join_sql = " ".join(joins)
+    order_sql = {
+        "title_asc": "d.title COLLATE NOCASE ASC, d.updated_at DESC",
+        "updated_desc": "d.updated_at DESC",
+    }.get(sort, "d.updated_at DESC")
     rows = connection.execute(
         f"""
         SELECT DISTINCT d.*
         FROM {source}
         {join_sql}
         WHERE {where}
-        ORDER BY d.updated_at DESC
+        ORDER BY {order_sql}
         LIMIT ? OFFSET ?
         """,
         (*values, limit, offset),

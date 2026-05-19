@@ -10,6 +10,18 @@ const translations = {
     docs_short: "Docs",
     show_documents: "Show documents",
     search_documents: "Search documents",
+    document_organizer: "Document organization filters",
+    filter_category: "Category",
+    filter_lesson: "Lesson",
+    filter_tag: "Tag",
+    sort_by: "Sort",
+    sort_updated_desc: "Recently updated",
+    sort_title_asc: "Title A-Z",
+    clear_filters: "Clear filters",
+    all_categories: "All categories",
+    all_lessons: "All lessons",
+    all_tags: "All tags",
+    unfiled: "Unfiled",
     workspace_modes: "Workspace modes",
     viewer: "Viewer",
     creator: "Creator",
@@ -44,7 +56,8 @@ const translations = {
     reset: "Reset",
     save: "Save",
     title: "Title",
-    slug: "Slug",
+    slug: "URL name",
+    slug_help: "Use lowercase letters, numbers, and hyphens.",
     summary: "Summary",
     category: "Category",
     lesson: "Lesson",
@@ -62,6 +75,7 @@ const translations = {
     add_tag: "Add tag",
     image_attachment: "Image attachment",
     image_file: "Image file",
+    image_alt_text: "Alt text",
     upload_and_insert: "Upload and insert",
     markdown: "Markdown",
     markdown_editor: "Markdown editor",
@@ -72,9 +86,13 @@ const translations = {
     document_information: "Document information",
     insert_block: "Insert block",
     heading: "Heading",
+    heading_placeholder: "Heading",
     table: "Table",
+    table_column_1: "Column 1",
+    table_column_2: "Column 2",
     code_block: "Code block",
     quote: "Quote",
+    quote_placeholder: "Quote",
     done: "Done",
     close: "Close",
     draft: "Draft",
@@ -108,7 +126,7 @@ const translations = {
     updated_at: "Updated {date}",
     save_before_upload: "Save the document before uploading images.",
     no_permission: "You do not have permission for this panel.",
-    title_slug_required: "Title and slug are required.",
+    title_slug_required: "Title and URL name are required.",
     saving: "Saving...",
     saved_revision: "Saved revision {id}.",
     saved: "Saved.",
@@ -174,75 +192,93 @@ const translations = {
     something_went_wrong: "Something went wrong.",
   },
   ja: {
-    app_title: "ドキュメントプラットフォーム",
+    app_title: "文書管理",
     docs_short: "文書",
-    show_documents: "ドキュメントを表示",
-    search_documents: "ドキュメントを検索",
-    workspace_modes: "ワークスペースモード",
-    viewer: "ビューアー",
-    creator: "作成ツール",
-    creator_views: "作成ツール表示",
+    show_documents: "文書一覧を表示",
+    search_documents: "文書を検索",
+    document_organizer: "文書の整理条件",
+    filter_category: "分類",
+    filter_lesson: "単元",
+    filter_tag: "タグ",
+    sort_by: "並び順",
+    sort_updated_desc: "更新が新しい順",
+    sort_title_asc: "タイトル順",
+    clear_filters: "条件を解除",
+    all_categories: "すべての分類",
+    all_lessons: "すべての単元",
+    all_tags: "すべてのタグ",
+    unfiled: "未分類",
+    workspace_modes: "表示モード",
+    viewer: "閲覧",
+    creator: "作成",
+    creator_views: "作成画面",
     read: "閲覧",
     edit: "編集",
     history: "履歴",
     username: "ユーザー名",
     password: "パスワード",
-    sign_in: "サインイン",
+    sign_in: "ログイン",
     language: "言語",
     sign_out: "サインアウト",
     new: "新規",
-    panels: "パネル",
-    documents: "ドキュメント",
-    document_detail: "ドキュメント詳細",
-    select_document: "ドキュメントを選択",
-    choose_document_hint: "一覧からドキュメントを選ぶか、新規作成してください。",
+    panels: "補助",
+    documents: "文書一覧",
+    document_detail: "文書詳細",
+    select_document: "文書を選択",
+    choose_document_hint: "一覧から文書を選ぶか、新規作成してください。",
     comments: "コメント",
     refresh: "更新",
     target: "対象",
-    document: "ドキュメント",
+    document: "文書",
     text_selection: "テキスト選択",
     image: "画像",
-    mermaid_block: "Mermaid ブロック",
+    mermaid_block: "図表ブロック",
     use_selection: "選択範囲を使う",
     comment: "コメント",
     add_comment: "コメントを追加",
-    document_editor: "ドキュメントエディター",
-    edit_document: "ドキュメントを編集",
-    new_document: "新規ドキュメント",
+    document_editor: "文書編集",
+    edit_document: "文書を編集",
+    new_document: "新規文書",
     reset: "リセット",
     save: "保存",
     title: "タイトル",
-    slug: "スラッグ",
+    slug: "URL名",
+    slug_help: "URLに使う短い名前です。半角英数字とハイフンを使います。",
     summary: "概要",
-    category: "カテゴリ",
-    lesson: "レッスン",
+    category: "分類",
+    lesson: "単元",
     tags: "タグ",
-    classification: "分類",
-    no_category: "カテゴリなし",
-    no_lesson: "レッスンなし",
-    new_category: "新規カテゴリ",
-    new_lesson: "新規レッスン",
-    category_name: "カテゴリ名",
-    lesson_name: "レッスン名",
+    classification: "分類情報",
+    no_category: "分類なし",
+    no_lesson: "単元なし",
+    new_category: "新しい分類",
+    new_lesson: "新しい単元",
+    category_name: "分類名",
+    lesson_name: "単元名",
     tag_name: "タグ名",
-    add_category: "カテゴリを追加",
-    add_lesson: "レッスンを追加",
+    add_category: "分類を追加",
+    add_lesson: "単元を追加",
     add_tag: "タグを追加",
     image_attachment: "画像添付",
     image_file: "画像ファイル",
+    image_alt_text: "画像の説明",
     upload_and_insert: "アップロードして挿入",
-    markdown: "Markdown",
-    markdown_editor: "Markdown エディター",
-    markdown_preview: "Markdown プレビュー",
+    markdown: "本文",
+    markdown_editor: "本文エディター",
+    markdown_preview: "本文確認",
     preview: "プレビュー",
     review: "確認",
-    document_preview: "ドキュメント確認",
-    document_information: "ドキュメント情報",
-    insert_block: "ブロックを挿入",
+    document_preview: "文書確認",
+    document_information: "文書情報",
+    insert_block: "部品を挿入",
     heading: "見出し",
+    heading_placeholder: "見出し",
     table: "表",
-    code_block: "コードブロック",
+    table_column_1: "項目1",
+    table_column_2: "項目2",
+    code_block: "コード",
     quote: "引用",
+    quote_placeholder: "引用文",
     done: "完了",
     close: "閉じる",
     draft: "下書き",
@@ -253,30 +289,30 @@ const translations = {
     against: "比較対象",
     compare: "比較",
     restore: "復元",
-    reference_panels: "参照パネル",
-    auxiliary_panels: "補助パネル",
+    reference_panels: "補助情報",
+    auxiliary_panels: "補助情報",
     glossary: "用語集",
-    plugins: "プラグイン",
+    plugins: "拡張機能",
     search_glossary: "用語集を検索",
     filter_terms: "用語を絞り込む",
-    plugin_administration: "プラグイン管理",
-    mobile_panels: "モバイルパネル",
-    work: "作業",
-    select_document_text_first: "先にドキュメント本文を選択してください。",
+    plugin_administration: "拡張機能管理",
+    mobile_panels: "画面切替",
+    work: "本文",
+    select_document_text_first: "先に文書本文を選択してください。",
     request_failed: "リクエストに失敗しました ({status})",
-    loading_documents: "ドキュメントを読み込み中...",
+    loading_documents: "文書を読み込み中...",
     loading_taxonomy: "分類を読み込み中...",
     taxonomy_name_required: "名前は必須です。",
     taxonomy_created: "{name} を追加しました。",
-    no_documents_found: "ドキュメントが見つかりません。",
+    no_documents_found: "文書が見つかりません。",
     total_count: "合計 {count} 件",
-    untitled_document: "無題のドキュメント",
+    untitled_document: "無題の文書",
     no_summary: "概要なし",
-    loading_document: "ドキュメントを読み込み中...",
+    loading_document: "文書を読み込み中...",
     updated_at: "更新 {date}",
-    save_before_upload: "画像をアップロードする前にドキュメントを保存してください。",
-    no_permission: "このパネルを操作する権限がありません。",
-    title_slug_required: "タイトルとスラッグは必須です。",
+    save_before_upload: "画像をアップロードする前に文書を保存してください。",
+    no_permission: "この操作の権限がありません。",
+    title_slug_required: "タイトルとURL名は必須です。",
     saving: "保存中...",
     saved_revision: "改訂 {id} を保存しました。",
     saved: "保存しました。",
@@ -304,7 +340,7 @@ const translations = {
     mermaid_number: "Mermaid {number}",
     no_text_selected: "テキストが選択されていません。",
     no_attachment_images: "添付画像がありません。",
-    no_mermaid_blocks: "Mermaid ブロックがありません。",
+    no_mermaid_blocks: "図表ブロックがありません。",
     loading_revisions: "改訂を読み込み中...",
     no_revisions_yet: "改訂はまだありません。",
     need_two_revisions: "差分には 2 件以上の改訂が必要です。",
@@ -318,8 +354,8 @@ const translations = {
     loading_glossary: "用語集を読み込み中...",
     no_glossary_terms_found: "用語が見つかりません。",
     untitled_term: "無題の用語",
-    loading_plugins: "プラグインを読み込み中...",
-    no_plugins_installed: "インストール済みプラグインはありません。",
+    loading_plugins: "拡張機能を読み込み中...",
+    no_plugins_installed: "インストール済み拡張機能はありません。",
     no_version: "バージョンなし",
     plugin_status_unknown: "不明",
     plugin_status_enabled: "有効",
@@ -348,19 +384,19 @@ const CORE_INSERT_BLOCKS = [
     id: "heading",
     labelKey: "heading",
     icon: "heading-2",
-    markdown: "## Heading",
+    markdown: () => `## ${t("heading_placeholder")}`,
   },
   {
     id: "table",
     labelKey: "table",
     icon: "table",
-    markdown: "| Column 1 | Column 2 |\n| --- | --- |\n|  |  |",
+    markdown: () => `| ${t("table_column_1")} | ${t("table_column_2")} |\n| --- | --- |\n|  |  |`,
   },
   {
     id: "image",
     labelKey: "image",
     icon: "image",
-    markdown: "![Alt text](image-url)",
+    markdown: () => `![${t("image_alt_text")}](image-url)`,
   },
   {
     id: "code",
@@ -372,7 +408,7 @@ const CORE_INSERT_BLOCKS = [
     id: "quote",
     labelKey: "quote",
     icon: "quote",
-    markdown: "> Quote",
+    markdown: () => `> ${t("quote_placeholder")}`,
   },
   {
     id: "mermaid",
@@ -384,6 +420,12 @@ const CORE_INSERT_BLOCKS = [
 
 let frontendPlugins = [];
 let frontendPluginTranslations = { en: {}, ja: {} };
+const localizedTaxonomyNames = {
+  ja: {
+    general: "未分類",
+    "getting-started": "はじめに",
+  },
+};
 
 const state = {
   session: null,
@@ -415,6 +457,10 @@ const elements = {
   searchForm: document.querySelector('[data-form="document-search"]'),
   searchInput: document.querySelector("#document-search"),
   documentCount: document.querySelector("#document-count"),
+  documentCategoryFilter: document.querySelector("#document-category-filter"),
+  documentLessonFilter: document.querySelector("#document-lesson-filter"),
+  documentTagFilter: document.querySelector("#document-tag-filter"),
+  documentSort: document.querySelector("#document-sort"),
   documentListStatus: document.querySelector("#document-list-status"),
   documentList: document.querySelector("#document-list"),
   documentEmpty: document.querySelector("#document-empty"),
@@ -500,6 +546,7 @@ async function boot() {
     renderDocumentList();
     renderGlossaryList();
     renderTaxonomyControls();
+    renderDocumentFilterControls();
   }
 }
 
@@ -512,6 +559,14 @@ function bindEvents() {
   elements.searchInput.addEventListener("input", debounce(() => {
     loadDocuments(elements.searchInput.value.trim());
   }, 240));
+  [
+    elements.documentCategoryFilter,
+    elements.documentLessonFilter,
+    elements.documentTagFilter,
+    elements.documentSort,
+  ].forEach((control) => {
+    control.addEventListener("change", () => loadDocuments(elements.searchInput.value.trim()));
+  });
   elements.editorForm.addEventListener("submit", saveDocument);
   elements.editorForm.addEventListener("input", () => {
     renderCreatorDraft();
@@ -627,6 +682,9 @@ async function handleClick(event) {
       break;
     case "create-tag":
       await createTaxonomyItem("tags");
+      break;
+    case "clear-document-filters":
+      clearDocumentFilters();
       break;
     case "toggle-aux":
       elements.shell.dataset.auxOpen = elements.shell.dataset.auxOpen !== "true";
@@ -783,6 +841,7 @@ async function logout() {
   renderRevisionList();
   renderGlossaryList();
   renderTaxonomyControls();
+  renderDocumentFilterControls();
   renderDocumentDetail();
   renderComments();
 }
@@ -799,9 +858,11 @@ function renderSession(errorMessage = "") {
 
 async function loadDocuments(query = "") {
   setStatus(elements.documentListStatus, t("loading_documents"));
-  const path = query
-    ? `/api/search?${new URLSearchParams({ q: query, type: "document", page_size: "20" })}`
-    : "/api/documents?page_size=20";
+  const params = documentQueryParams(query);
+  const hasSearch = query || params.has("category_id") || params.has("lesson_id") || params.has("tag");
+  const path = hasSearch
+    ? `/api/search?${params}`
+    : `/api/documents?${params}`;
 
   try {
     const payload = await request(path);
@@ -810,8 +871,16 @@ async function loadDocuments(query = "") {
     renderDocumentList();
     setStatus(elements.documentListStatus, state.documents.length ? "" : t("no_documents_found"));
 
-    if (!state.selectedDocument && state.documents[0]) {
+    const selectedStillVisible = state.selectedDocument
+      && state.documents.some((documentItem) => String(documentItem.id) === String(state.selectedDocument.id));
+    if (state.documents[0] && !selectedStillVisible) {
       await selectDocument(state.documents[0].id);
+    } else if (!state.documents.length) {
+      state.selectedDocument = null;
+      state.editorSeed = null;
+      state.comments = [];
+      renderDocumentDetail();
+      renderComments();
     }
   } catch (error) {
     state.documents = [];
@@ -819,6 +888,30 @@ async function loadDocuments(query = "") {
     renderDocumentList();
     setStatus(elements.documentListStatus, readableError(error), true);
   }
+}
+
+function documentQueryParams(query = "") {
+  const params = new URLSearchParams({ page_size: "20", sort: elements.documentSort.value || "updated_desc" });
+  if (query) {
+    params.set("q", query);
+    params.set("type", "document");
+  }
+  const categoryId = elements.documentCategoryFilter.value;
+  const lessonId = elements.documentLessonFilter.value;
+  const tag = elements.documentTagFilter.value;
+  if (categoryId) {
+    params.set("category_id", categoryId);
+    params.set("type", "document");
+  }
+  if (lessonId) {
+    params.set("lesson_id", lessonId);
+    params.set("type", "document");
+  }
+  if (tag) {
+    params.set("tag", tag);
+    params.set("type", "document");
+  }
+  return params;
 }
 
 async function loadTaxonomy() {
@@ -832,15 +925,29 @@ async function loadTaxonomy() {
     state.lessons = listItems(lessons).map(normalizeTaxonomyItem).sort(compareByPosition);
     state.tags = listItems(tags).map(normalizeTaxonomyItem).sort(compareByName);
     renderTaxonomyControls();
+    renderDocumentFilterControls();
   } catch (error) {
     state.categories = [];
     state.lessons = [];
     state.tags = [];
     renderTaxonomyControls();
+    renderDocumentFilterControls();
     if (state.session) {
       setStatus(elements.editorStatus, readableError(error), true);
     }
   }
+}
+
+function renderDocumentFilterControls() {
+  const selectedCategory = elements.documentCategoryFilter.value;
+  const selectedLesson = elements.documentLessonFilter.value;
+  const selectedTag = elements.documentTagFilter.value;
+  replaceTaxonomyOptions(elements.documentCategoryFilter, state.categories, t("all_categories"));
+  replaceTaxonomyOptions(elements.documentLessonFilter, state.lessons, t("all_lessons"));
+  replaceTaxonomyOptions(elements.documentTagFilter, state.tags, t("all_tags"), "slug");
+  elements.documentCategoryFilter.value = hasOption(elements.documentCategoryFilter, selectedCategory) ? selectedCategory : "";
+  elements.documentLessonFilter.value = hasOption(elements.documentLessonFilter, selectedLesson) ? selectedLesson : "";
+  elements.documentTagFilter.value = hasOption(elements.documentTagFilter, selectedTag) ? selectedTag : "";
 }
 
 function renderTaxonomyControls(documentItem = state.editorSeed || blankDocument()) {
@@ -870,11 +977,20 @@ function renderTaxonomyControls(documentItem = state.editorSeed || blankDocument
   );
 }
 
-function replaceTaxonomyOptions(select, items, emptyLabel) {
+function replaceTaxonomyOptions(select, items, emptyLabel, valueKey = "id") {
   select.replaceChildren(
     new Option(emptyLabel, ""),
-    ...items.map((item) => new Option(item.name || item.slug || String(item.id), item.id)),
+    ...items.map((item) => new Option(displayName(item) || String(item.id), item[valueKey] || item.id)),
   );
+}
+
+function clearDocumentFilters() {
+  elements.documentCategoryFilter.value = "";
+  elements.documentLessonFilter.value = "";
+  elements.documentTagFilter.value = "";
+  elements.documentSort.value = "updated_desc";
+  elements.searchInput.value = "";
+  loadDocuments();
 }
 
 async function createTaxonomyItem(kind) {
@@ -920,6 +1036,7 @@ async function createTaxonomyItem(kind) {
     );
     config.input.value = "";
     renderTaxonomyControls(documentFromEditorDraft());
+    renderDocumentFilterControls();
     if (config.select) {
       config.select.value = String(created.id);
     } else {
@@ -950,6 +1067,7 @@ function renderDocumentList() {
       button.classList.toggle("is-active", documentItem.id === state.selectedDocument?.id);
       button.innerHTML = `
         <span class="list-title">${escapeHtml(documentItem.title || t("untitled_document"))}</span>
+        <span class="list-organization">${escapeHtml(documentOrganizationLabel(documentItem))}</span>
         <span class="list-summary">${escapeHtml(documentItem.summary || t("no_summary"))}</span>
         <span class="list-meta">${escapeHtml(formatDate(documentItem.updated_at))}</span>
       `;
@@ -957,6 +1075,15 @@ function renderDocumentList() {
       return item;
     }),
   );
+}
+
+function documentOrganizationLabel(documentItem) {
+  const location = [
+    displayName(documentItem.category),
+    displayName(documentItem.lesson),
+  ].filter(Boolean).join(" / ");
+  const tags = (documentItem.tags || []).map((tag) => displayName(tag)).filter(Boolean).join(", ");
+  return [location || t("unfiled"), tags].filter(Boolean).join(" · ");
 }
 
 async function selectDocument(id) {
@@ -2317,6 +2444,7 @@ function rerenderLocalizedContent() {
   renderGlossaryList();
   renderGlossaryDetail();
   renderTaxonomyControls();
+  renderDocumentFilterControls();
   renderPlugins();
   updateEditorHeading();
   renderCreatorDraft();
@@ -2483,7 +2611,11 @@ function displayName(value) {
   if (!value) {
     return "";
   }
-  return typeof value === "object" ? value.name || value.title || value.slug || "" : String(value);
+  if (typeof value !== "object") {
+    return String(value);
+  }
+  const localized = localizedTaxonomyNames[state.language]?.[value.slug];
+  return localized || value.name || value.title || value.slug || "";
 }
 
 function formatDate(value) {

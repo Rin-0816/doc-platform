@@ -2,6 +2,7 @@ export const translations = {
   en: {
     ict_learning: "ICT learning",
     ict_learning_metadata: "ICT learning metadata",
+    ict_learning_material_info: "ICT learning material info",
     learning_objectives: "Learning objectives",
     prerequisites: "Prerequisites",
     difficulty: "Difficulty",
@@ -14,10 +15,13 @@ export const translations = {
     required_equipment: "Required equipment",
     required_software: "Required software",
     supported_platforms: "Supported platforms",
+    one_item_per_line: "One item per line",
+    platform_format_hint: "One platform per line, for example Windows | 11",
   },
   ja: {
-    ict_learning: "ICT 学習",
-    ict_learning_metadata: "ICT 学習メタデータ",
+    ict_learning: "ICT教材",
+    ict_learning_metadata: "ICT教材情報",
+    ict_learning_material_info: "ICT教材情報",
     learning_objectives: "学習目標",
     prerequisites: "前提知識",
     difficulty: "難易度",
@@ -29,7 +33,9 @@ export const translations = {
     last_verified: "最終確認日",
     required_equipment: "必要機材",
     required_software: "必要ソフトウェア",
-    supported_platforms: "対応プラットフォーム",
+    supported_platforms: "対応環境",
+    one_item_per_line: "1行に1件ずつ入力",
+    platform_format_hint: "1行に1件ずつ入力。例: Windows | 11",
   },
 };
 
@@ -85,7 +91,7 @@ export function createFrontendPlugin(api) {
     const panel = document.createElement("details");
     panel.className = "editor-panel ict-editor-panel";
     panel.innerHTML = `
-      <summary data-i18n="ict_learning_metadata">${api.escapeHtml(api.t("ict_learning_metadata"))}</summary>
+      <summary data-i18n="ict_learning_material_info">${api.escapeHtml(api.t("ict_learning_material_info"))}</summary>
       <div class="ict-editor-grid">
         <label class="span-2">
           <span data-i18n="learning_objectives">${api.escapeHtml(api.t("learning_objectives"))}</span>
@@ -114,15 +120,15 @@ export function createFrontendPlugin(api) {
         </label>
         <label>
           <span data-i18n="required_equipment">${api.escapeHtml(api.t("required_equipment"))}</span>
-          <textarea name="ict_required_equipment" rows="3"></textarea>
+          <textarea name="ict_required_equipment" rows="3" placeholder="${api.escapeHtml(api.t("one_item_per_line"))}" data-i18n-placeholder="one_item_per_line"></textarea>
         </label>
         <label>
           <span data-i18n="required_software">${api.escapeHtml(api.t("required_software"))}</span>
-          <textarea name="ict_required_software" rows="3"></textarea>
+          <textarea name="ict_required_software" rows="3" placeholder="${api.escapeHtml(api.t("one_item_per_line"))}" data-i18n-placeholder="one_item_per_line"></textarea>
         </label>
         <label class="span-2">
           <span data-i18n="supported_platforms">${api.escapeHtml(api.t("supported_platforms"))}</span>
-          <textarea name="ict_supported_platforms" rows="3"></textarea>
+          <textarea name="ict_supported_platforms" rows="3" placeholder="${api.escapeHtml(api.t("platform_format_hint"))}" data-i18n-placeholder="platform_format_hint"></textarea>
         </label>
       </div>
     `;
