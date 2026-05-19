@@ -145,13 +145,15 @@
               <div id="editor-status" class="status-line" aria-live="polite"></div>
 
               <section class="writing-stage" aria-label="Markdown editor" data-i18n-aria-label="markdown_editor">
-                <button class="insert-trigger" type="button" data-action="toggle-insert-menu" aria-label="Insert block" data-i18n-aria-label="insert_block">
-                  <i data-lucide="plus" aria-hidden="true"></i>
-                </button>
-                <div id="insert-menu" class="insert-menu" hidden></div>
+                <div class="editor-toolbar">
+                  <button class="insert-trigger" type="button" data-action="toggle-insert-menu" aria-label="Insert block" data-i18n-aria-label="insert_block" aria-controls="insert-menu" aria-expanded="false">
+                    <i data-lucide="plus" aria-hidden="true"></i>
+                  </button>
+                  <div id="insert-menu" class="insert-menu" hidden></div>
+                </div>
                 <label class="markdown-input body-editor">
                   <span class="sr-only" data-i18n="markdown">Markdown</span>
-                  <textarea name="content_markdown" rows="28"></textarea>
+                  <textarea name="content_markdown"></textarea>
                 </label>
               </section>
 
@@ -171,10 +173,10 @@
                 </details>
               </aside>
 
-              <dialog id="metadata-dialog" class="metadata-dialog">
+              <dialog id="metadata-dialog" class="metadata-dialog" aria-labelledby="metadata-dialog-title">
                 <div class="metadata-form">
                   <div class="dialog-heading">
-                    <h2 data-i18n="document_information">Document information</h2>
+                    <h2 id="metadata-dialog-title" data-i18n="document_information">Document information</h2>
                     <button type="button" data-action="close-metadata" aria-label="Close" data-i18n-aria-label="close">
                       <i data-lucide="x" aria-hidden="true"></i>
                     </button>
@@ -193,6 +195,44 @@
                     <span data-i18n="summary">Summary</span>
                     <textarea name="summary" rows="4"></textarea>
                   </label>
+                  <section class="metadata-taxonomy" aria-label="Classification" data-i18n-aria-label="classification">
+                    <div class="field-grid">
+                      <label>
+                        <span data-i18n="category">Category</span>
+                        <select id="metadata-category" name="category_id"></select>
+                      </label>
+                      <label>
+                        <span data-i18n="lesson">Lesson</span>
+                        <select id="metadata-lesson" name="lesson_id"></select>
+                      </label>
+                    </div>
+                    <div class="taxonomy-create-grid">
+                      <label>
+                        <span data-i18n="new_category">New category</span>
+                        <input id="metadata-new-category" placeholder="Category name" data-i18n-placeholder="category_name">
+                      </label>
+                      <button class="icon-button taxonomy-add-button" type="button" data-action="create-category" aria-label="Add category" data-i18n-aria-label="add_category">
+                        <i data-lucide="plus" aria-hidden="true"></i>
+                      </button>
+                      <label>
+                        <span data-i18n="new_lesson">New lesson</span>
+                        <input id="metadata-new-lesson" placeholder="Lesson name" data-i18n-placeholder="lesson_name">
+                      </label>
+                      <button class="icon-button taxonomy-add-button" type="button" data-action="create-lesson" aria-label="Add lesson" data-i18n-aria-label="add_lesson">
+                        <i data-lucide="plus" aria-hidden="true"></i>
+                      </button>
+                    </div>
+                    <fieldset class="tag-fieldset">
+                      <legend data-i18n="tags">Tags</legend>
+                      <div id="metadata-tags" class="tag-selector"></div>
+                      <div class="taxonomy-create-row">
+                        <input id="metadata-new-tag" placeholder="Tag name" data-i18n-placeholder="tag_name">
+                        <button class="icon-button taxonomy-add-button" type="button" data-action="create-tag" aria-label="Add tag" data-i18n-aria-label="add_tag">
+                          <i data-lucide="plus" aria-hidden="true"></i>
+                        </button>
+                      </div>
+                    </fieldset>
+                  </section>
                   <div class="button-row metadata-actions">
                     <button type="button" data-action="close-metadata" data-i18n="done">Done</button>
                   </div>

@@ -50,10 +50,11 @@
 
 ### 4.4 文書編集
 
-- 表示: 基本情報、本文入力、画像管理、Mermaid 入力、プラグイン拡張欄
-- 操作: 保存、下書き保存、画像追加、プレビュー
+- 表示: 本文入力、ブロック挿入 toolbar、画像管理、Mermaid 入力、プラグイン拡張欄
+- 基本情報: タイトル、概要、カテゴリ、レッスン、タグは metadata dialog で編集する
+- 操作: 保存、下書き保存、画像追加、カテゴリ/レッスン/タグ quick-add、プレビュー
 - 権限: 編集者以上
-- 主 API: Document API、Attachment API、Plugin API
+- 主 API: Document API、Taxonomy API、Attachment API、Plugin API
 
 ### 4.5 履歴
 

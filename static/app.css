@@ -45,6 +45,8 @@ select {
 }
 
 button {
+  min-height: 40px;
+  padding: 0 12px;
   border: 1px solid var(--line-strong);
   border-radius: 6px;
   color: var(--text);
@@ -69,6 +71,14 @@ button.primary {
 
 button.primary:hover {
   background: var(--accent-strong);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 input,
@@ -219,7 +229,7 @@ h3 {
 .topbar-actions button,
 .button-row button,
 .panel-heading button {
-  min-height: 38px;
+  min-height: 40px;
   padding: 0 12px;
 }
 
@@ -362,8 +372,8 @@ h3 {
 }
 
 .creator-commandbar {
-  display: flex;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 18px;
   align-items: center;
   min-height: 44px;
@@ -371,8 +381,14 @@ h3 {
 
 .creator-actions {
   display: flex;
+  min-width: 0;
   gap: 10px;
   align-items: center;
+  justify-content: flex-end;
+}
+
+.creator-actions > button {
+  min-height: 44px;
 }
 
 .creator-tabs {
@@ -383,9 +399,10 @@ h3 {
   display: inline-flex;
   gap: 8px;
   align-items: center;
-  min-height: 38px;
+  min-width: 0;
+  min-height: 44px;
   max-width: min(420px, 38vw);
-  padding: 0 10px;
+  padding: 0 12px;
 }
 
 .document-meta-button span {
@@ -673,7 +690,7 @@ h3 {
 }
 
 .comment-target-row button {
-  min-height: 34px;
+  min-height: 40px;
   padding: 0 10px;
 }
 
@@ -693,37 +710,42 @@ h3 {
 }
 
 .writing-stage {
+  display: grid;
+  gap: 8px;
   position: relative;
   min-width: 0;
 }
 
+.editor-toolbar {
+  position: relative;
+  display: grid;
+  grid-template-columns: 44px minmax(180px, 220px);
+  gap: 8px;
+  align-items: start;
+  min-height: 40px;
+}
+
 .body-editor textarea {
-  min-height: min(68vh, 760px);
-  padding: 20px 22px;
+  height: min(70dvh, 760px);
+  min-height: 360px;
+  padding: 18px 20px;
   line-height: 1.7;
 }
 
 .insert-trigger {
-  position: absolute;
-  z-index: 2;
-  top: 18px;
-  left: -48px;
   display: inline-grid;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   padding: 0;
-  border-radius: 999px;
+  border-radius: 8px;
   color: var(--accent);
 }
 
 .insert-menu {
-  position: absolute;
-  z-index: 5;
-  top: 58px;
-  left: -48px;
+  position: static;
   display: grid;
-  width: 184px;
+  width: min(220px, calc(100vw - 48px));
   gap: 2px;
   padding: 8px;
   border: 1px solid var(--line);
@@ -736,8 +758,8 @@ h3 {
   display: flex;
   gap: 10px;
   align-items: center;
-  min-height: 34px;
-  padding: 0 8px;
+  min-height: 44px;
+  padding: 0 10px;
   border-color: transparent;
   background: transparent;
   text-align: left;
@@ -812,7 +834,7 @@ h3 {
 }
 
 .attachment-upload-row button {
-  min-height: 38px;
+  min-height: 40px;
   padding: 0 12px;
 }
 
@@ -835,7 +857,7 @@ h3 {
 }
 
 .metadata-dialog {
-  width: min(560px, calc(100vw - 32px));
+  width: min(640px, calc(100vw - 32px));
   border: 1px solid var(--line);
   border-radius: 10px;
   color: var(--text);
@@ -866,14 +888,82 @@ h3 {
 
 .dialog-heading button {
   display: inline-grid;
-  width: 34px;
-  height: 34px;
+  width: 44px;
+  height: 44px;
   place-items: center;
   padding: 0;
 }
 
 .metadata-actions {
   justify-content: flex-end;
+}
+
+.metadata-taxonomy {
+  display: grid;
+  gap: 12px;
+  margin-top: 2px;
+}
+
+.taxonomy-create-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px minmax(0, 1fr) 40px;
+  gap: 10px;
+  align-items: end;
+}
+
+.taxonomy-create-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 40px;
+  gap: 10px;
+  align-items: center;
+}
+
+.icon-button,
+.taxonomy-add-button {
+  display: inline-grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  padding: 0;
+}
+
+.tag-fieldset {
+  display: grid;
+  gap: 10px;
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.tag-fieldset legend {
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 650;
+}
+
+.tag-selector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 34px;
+}
+
+.tag-selector label {
+  display: inline-flex;
+  width: auto;
+  min-height: 34px;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.tag-selector input {
+  width: auto;
 }
 
 .history-layout {
@@ -981,7 +1071,7 @@ h3 {
 }
 
 .plugin-actions button {
-  min-height: 34px;
+  min-height: 40px;
   padding: 0 10px;
 }
 
@@ -1008,22 +1098,22 @@ h3 {
 @media (max-width: 1120px) {
   .app-shell {
     grid-template:
-      "topbar topbar" 64px
-      "documents workspace" calc(100vh - 64px) /
+      "topbar topbar" 120px
+      "documents workspace" calc(100vh - 120px) /
       minmax(230px, 270px) minmax(0, 1fr);
   }
 
   .app-shell[data-app-mode="creator"] {
     grid-template:
-      "topbar topbar" 64px
-      "documents workspace" calc(100vh - 64px) /
+      "topbar topbar" 120px
+      "documents workspace" calc(100vh - 120px) /
       minmax(230px, 270px) minmax(0, 1fr);
   }
 
   .auxiliary-panel {
     position: fixed;
     z-index: 10;
-    top: 64px;
+    top: 120px;
     right: 0;
     bottom: 0;
     width: min(360px, calc(100vw - 40px));
@@ -1047,14 +1137,13 @@ h3 {
   }
 
   .insert-menu {
-    top: 0;
-    left: 0;
+    width: min(220px, calc(100vw - 84px));
   }
 
   .topbar {
     grid-template-columns: auto minmax(180px, 1fr) auto;
     grid-template-rows: 40px 40px;
-    height: 88px;
+    height: 120px;
   }
 
   .app-tabs {
@@ -1084,7 +1173,7 @@ h3 {
 @media (max-width: 760px) {
   .app-shell {
     display: block;
-    padding-top: 146px;
+    padding-top: 156px;
     padding-bottom: 58px;
   }
 
@@ -1095,8 +1184,8 @@ h3 {
     right: 0;
     left: 0;
     grid-template-columns: auto minmax(0, 1fr);
-    grid-template-rows: 40px 40px 38px;
-    height: 146px;
+    grid-template-rows: 40px 40px 40px;
+    height: 156px;
     gap: 8px 12px;
     padding: 10px 12px;
   }
@@ -1153,7 +1242,8 @@ h3 {
   }
 
   .creator-commandbar {
-    flex-wrap: wrap;
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
 
   .creator-actions {
@@ -1161,8 +1251,26 @@ h3 {
     justify-content: space-between;
   }
 
+  .creator-tabs {
+    width: 100%;
+  }
+
+  .creator-tabs button {
+    flex: 1;
+  }
+
   .document-meta-button {
+    flex: 1 1 auto;
     max-width: min(calc(100vw - 118px), 280px);
+  }
+
+  .body-editor textarea {
+    height: min(54dvh, 440px);
+    min-height: 320px;
+  }
+
+  .taxonomy-create-grid {
+    grid-template-columns: minmax(0, 1fr) 40px;
   }
 
   .creator-save-state {
@@ -1170,12 +1278,12 @@ h3 {
   }
 
   .app-shell[data-signed-in="false"] {
-    padding-top: 184px;
+    padding-top: 204px;
   }
 
   .app-shell[data-signed-in="false"] .topbar {
-    grid-template-rows: 40px 40px 38px 38px;
-    height: 184px;
+    grid-template-rows: 40px 40px 40px 40px;
+    height: 204px;
   }
 
   .app-shell[data-signed-in="false"] .login-form {
@@ -1196,18 +1304,31 @@ h3 {
     grid-row: 4;
   }
 
+  .app-shell[data-app-mode="creator"] {
+    padding-top: 108px;
+  }
+
+  .app-shell[data-app-mode="creator"] .topbar {
+    grid-template-rows: 40px 40px;
+    height: 108px;
+  }
+
+  .app-shell[data-app-mode="creator"] .global-search {
+    display: none;
+  }
+
   .document-rail,
   .workspace,
   .auxiliary-panel {
     display: none;
-    min-height: calc(100vh - 204px);
+    min-height: calc(100vh - 214px);
     border: 0;
   }
 
   .app-shell[data-signed-in="false"] .document-rail,
   .app-shell[data-signed-in="false"] .workspace,
   .app-shell[data-signed-in="false"] .auxiliary-panel {
-    min-height: calc(100vh - 242px);
+    min-height: calc(100vh - 262px);
   }
 
   .app-shell[data-mobile-view="documents"] .document-rail,
@@ -1228,13 +1349,17 @@ h3 {
 
   #viewer-mode,
   .creator-shell {
-    padding: 18px 16px;
+    padding: 12px 16px;
+  }
+
+  .creator-shell {
+    gap: 12px;
   }
 
   .auxiliary-panel {
     position: static;
     width: auto;
-    min-height: calc(100vh - 170px);
+    min-height: calc(100vh - 214px);
     padding: 16px;
     transform: none;
     box-shadow: none;

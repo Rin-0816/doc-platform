@@ -46,6 +46,20 @@ const translations = {
     title: "Title",
     slug: "Slug",
     summary: "Summary",
+    category: "Category",
+    lesson: "Lesson",
+    tags: "Tags",
+    classification: "Classification",
+    no_category: "No category",
+    no_lesson: "No lesson",
+    new_category: "New category",
+    new_lesson: "New lesson",
+    category_name: "Category name",
+    lesson_name: "Lesson name",
+    tag_name: "Tag name",
+    add_category: "Add category",
+    add_lesson: "Add lesson",
+    add_tag: "Add tag",
     image_attachment: "Image attachment",
     image_file: "Image file",
     upload_and_insert: "Upload and insert",
@@ -83,6 +97,9 @@ const translations = {
     select_document_text_first: "Select document text first.",
     request_failed: "Request failed ({status})",
     loading_documents: "Loading documents...",
+    loading_taxonomy: "Loading categories...",
+    taxonomy_name_required: "Name is required.",
+    taxonomy_created: "Added {name}.",
     no_documents_found: "No documents found.",
     total_count: "{count} total",
     untitled_document: "Untitled document",
@@ -197,6 +214,20 @@ const translations = {
     title: "タイトル",
     slug: "スラッグ",
     summary: "概要",
+    category: "カテゴリ",
+    lesson: "レッスン",
+    tags: "タグ",
+    classification: "分類",
+    no_category: "カテゴリなし",
+    no_lesson: "レッスンなし",
+    new_category: "新規カテゴリ",
+    new_lesson: "新規レッスン",
+    category_name: "カテゴリ名",
+    lesson_name: "レッスン名",
+    tag_name: "タグ名",
+    add_category: "カテゴリを追加",
+    add_lesson: "レッスンを追加",
+    add_tag: "タグを追加",
     image_attachment: "画像添付",
     image_file: "画像ファイル",
     upload_and_insert: "アップロードして挿入",
@@ -234,6 +265,9 @@ const translations = {
     select_document_text_first: "先にドキュメント本文を選択してください。",
     request_failed: "リクエストに失敗しました ({status})",
     loading_documents: "ドキュメントを読み込み中...",
+    loading_taxonomy: "分類を読み込み中...",
+    taxonomy_name_required: "名前は必須です。",
+    taxonomy_created: "{name} を追加しました。",
     no_documents_found: "ドキュメントが見つかりません。",
     total_count: "合計 {count} 件",
     untitled_document: "無題のドキュメント",
@@ -365,6 +399,9 @@ const state = {
   },
   revisions: [],
   glossary: [],
+  categories: [],
+  lessons: [],
+  tags: [],
   selectedTerm: null,
   plugins: [],
   activeMode: "viewer",
@@ -427,7 +464,14 @@ const elements = {
   sessionLabel: document.querySelector("#session-label"),
   languageSelect: document.querySelector("#language-select"),
   metadataDialog: document.querySelector("#metadata-dialog"),
+  metadataCategory: document.querySelector("#metadata-category"),
+  metadataLesson: document.querySelector("#metadata-lesson"),
+  metadataTags: document.querySelector("#metadata-tags"),
+  metadataNewCategory: document.querySelector("#metadata-new-category"),
+  metadataNewLesson: document.querySelector("#metadata-new-lesson"),
+  metadataNewTag: document.querySelector("#metadata-new-tag"),
   insertMenu: document.querySelector("#insert-menu"),
+  insertTrigger: document.querySelector('[data-action="toggle-insert-menu"]'),
 };
 
 let dateFormatter = createDateFormatter();
@@ -451,10 +495,11 @@ async function boot() {
   renderRoleAwareControls();
   await loadSession();
   if (state.session) {
-    await Promise.allSettled([loadDocuments(), loadGlossary()]);
+    await Promise.allSettled([loadDocuments(), loadGlossary(), loadTaxonomy()]);
   } else {
     renderDocumentList();
     renderGlossaryList();
+    renderTaxonomyControls();
   }
 }
 
@@ -469,6 +514,10 @@ function bindEvents() {
   }, 240));
   elements.editorForm.addEventListener("submit", saveDocument);
   elements.editorForm.addEventListener("input", () => {
+    renderCreatorDraft();
+    renderCreatorMetadataSummary();
+  });
+  elements.editorForm.addEventListener("change", () => {
     renderCreatorDraft();
     renderCreatorMetadataSummary();
   });
@@ -494,6 +543,7 @@ function bindEvents() {
   elements.loginForm.addEventListener("submit", login);
   elements.languageSelect.addEventListener("change", (event) => setLanguage(event.target.value));
   document.addEventListener("click", closeInsertMenuOnOutsideClick);
+  document.addEventListener("keydown", handleGlobalKeydown);
 }
 
 async function handleClick(event) {
@@ -528,8 +578,8 @@ async function handleClick(event) {
   }
 
   if (button.dataset.documentId) {
-    await selectDocument(button.dataset.documentId);
     setMobileView("workspace");
+    await selectDocument(button.dataset.documentId);
     return;
   }
 
@@ -568,6 +618,15 @@ async function handleClick(event) {
       break;
     case "toggle-insert-menu":
       toggleInsertMenu();
+      break;
+    case "create-category":
+      await createTaxonomyItem("categories");
+      break;
+    case "create-lesson":
+      await createTaxonomyItem("lessons");
+      break;
+    case "create-tag":
+      await createTaxonomyItem("tags");
       break;
     case "toggle-aux":
       elements.shell.dataset.auxOpen = elements.shell.dataset.auxOpen !== "true";
@@ -692,7 +751,7 @@ async function login(event) {
     await syncFrontendPlugins(state.session.frontend_plugins);
     elements.loginForm.reset();
     renderSession();
-    await Promise.allSettled([loadDocuments(elements.searchInput.value.trim()), loadGlossary()]);
+    await Promise.allSettled([loadDocuments(elements.searchInput.value.trim()), loadGlossary(), loadTaxonomy()]);
   } catch (error) {
     state.session = null;
     renderSession(readableError(error));
@@ -716,10 +775,14 @@ async function logout() {
   state.commentDraftTarget = null;
   state.revisions = [];
   state.glossary = [];
+  state.categories = [];
+  state.lessons = [];
+  state.tags = [];
   renderSession();
   renderDocumentList();
   renderRevisionList();
   renderGlossaryList();
+  renderTaxonomyControls();
   renderDocumentDetail();
   renderComments();
 }
@@ -755,6 +818,122 @@ async function loadDocuments(query = "") {
     state.documentTotal = 0;
     renderDocumentList();
     setStatus(elements.documentListStatus, readableError(error), true);
+  }
+}
+
+async function loadTaxonomy() {
+  try {
+    const [categories, lessons, tags] = await Promise.all([
+      request("/api/categories"),
+      request("/api/lessons"),
+      request("/api/tags"),
+    ]);
+    state.categories = listItems(categories).map(normalizeTaxonomyItem).sort(compareByName);
+    state.lessons = listItems(lessons).map(normalizeTaxonomyItem).sort(compareByPosition);
+    state.tags = listItems(tags).map(normalizeTaxonomyItem).sort(compareByName);
+    renderTaxonomyControls();
+  } catch (error) {
+    state.categories = [];
+    state.lessons = [];
+    state.tags = [];
+    renderTaxonomyControls();
+    if (state.session) {
+      setStatus(elements.editorStatus, readableError(error), true);
+    }
+  }
+}
+
+function renderTaxonomyControls(documentItem = state.editorSeed || blankDocument()) {
+  if (!elements.metadataCategory || !elements.metadataLesson || !elements.metadataTags) {
+    return;
+  }
+  const categoryValue = stringId(documentItem.category_id ?? documentItem.category?.id ?? selectedCategoryId());
+  const lessonValue = stringId(documentItem.lesson_id ?? documentItem.lesson?.id ?? selectedLessonId());
+  const tagValues = new Set(normalizeTagIds(documentItem).map(String));
+
+  replaceTaxonomyOptions(elements.metadataCategory, state.categories, t("no_category"));
+  replaceTaxonomyOptions(elements.metadataLesson, state.lessons, t("no_lesson"));
+  elements.metadataCategory.value = hasOption(elements.metadataCategory, categoryValue) ? categoryValue : "";
+  elements.metadataLesson.value = hasOption(elements.metadataLesson, lessonValue) ? lessonValue : "";
+
+  elements.metadataTags.replaceChildren(
+    ...state.tags.map((tag) => {
+      const label = document.createElement("label");
+      const checkbox = document.createElement("input");
+      checkbox.type = "checkbox";
+      checkbox.name = "tag_ids";
+      checkbox.value = tag.id;
+      checkbox.checked = tagValues.has(String(tag.id));
+      label.append(checkbox, document.createTextNode(tag.name || tag.slug || String(tag.id)));
+      return label;
+    }),
+  );
+}
+
+function replaceTaxonomyOptions(select, items, emptyLabel) {
+  select.replaceChildren(
+    new Option(emptyLabel, ""),
+    ...items.map((item) => new Option(item.name || item.slug || String(item.id), item.id)),
+  );
+}
+
+async function createTaxonomyItem(kind) {
+  if (!hasRoleAtLeast("editor")) {
+    setStatus(elements.editorStatus, t("no_permission"), true);
+    return;
+  }
+
+  const config = {
+    categories: {
+      input: elements.metadataNewCategory,
+      collection: "categories",
+      endpoint: "/api/categories",
+      select: elements.metadataCategory,
+    },
+    lessons: {
+      input: elements.metadataNewLesson,
+      collection: "lessons",
+      endpoint: "/api/lessons",
+      select: elements.metadataLesson,
+    },
+    tags: {
+      input: elements.metadataNewTag,
+      collection: "tags",
+      endpoint: "/api/tags",
+      select: null,
+    },
+  }[kind];
+  const name = String(config?.input?.value || "").trim();
+  if (!config || !name) {
+    setStatus(elements.editorStatus, t("taxonomy_name_required"), true);
+    return;
+  }
+
+  setStatus(elements.editorStatus, t("loading_taxonomy"));
+  try {
+    const created = normalizeTaxonomyItem(await request(config.endpoint, {
+      method: "POST",
+      body: JSON.stringify({ name }),
+    }));
+    state[config.collection] = [...state[config.collection], created].sort(
+      kind === "lessons" ? compareByPosition : compareByName,
+    );
+    config.input.value = "";
+    renderTaxonomyControls(documentFromEditorDraft());
+    if (config.select) {
+      config.select.value = String(created.id);
+    } else {
+      const checkbox = [...elements.metadataTags.querySelectorAll('input[name="tag_ids"]')]
+        .find((input) => input.value === String(created.id));
+      if (checkbox) {
+        checkbox.checked = true;
+      }
+    }
+    renderCreatorDraft();
+    renderCreatorMetadataSummary();
+    setStatus(elements.editorStatus, t("taxonomy_created", { name: created.name || name }));
+  } catch (error) {
+    setStatus(elements.editorStatus, readableError(error), true);
   }
 }
 
@@ -852,6 +1031,7 @@ function hydrateEditor(documentItem) {
   elements.editorForm.elements.slug.value = documentItem.slug || "";
   elements.editorForm.elements.summary.value = documentItem.summary || "";
   elements.editorForm.elements.content_markdown.value = documentItem.content_markdown || "";
+  renderTaxonomyControls(documentItem);
   syncCreatorPluginPanels();
   hydratePluginEditors(documentItem);
   renderCreatorDraft();
@@ -871,10 +1051,7 @@ function renderCreatorDraft() {
 }
 
 function renderCreatorMetadataSummary(documentItem = documentFromEditorDraft()) {
-  elements.creatorDocumentLabel.textContent = [
-    documentItem.title || t("untitled_document"),
-    documentItem.summary || t("no_summary"),
-  ].join(" / ");
+  elements.creatorDocumentLabel.textContent = documentItem.title || t("untitled_document");
   elements.creatorSaveState.textContent = documentItem.id
     ? t("updated_at", { date: formatDate(documentItem.updated_at) })
     : t("draft");
@@ -883,12 +1060,21 @@ function renderCreatorMetadataSummary(documentItem = documentFromEditorDraft()) 
 function documentFromEditorDraft() {
   const seed = state.editorSeed || blankDocument();
   const form = elements.editorForm.elements;
+  const categoryId = selectedCategoryId();
+  const lessonId = selectedLessonId();
+  const tagIds = selectedTagIds();
   return normalizeDocument({
     ...seed,
     title: form.title.value,
     slug: form.slug.value,
     summary: form.summary.value,
     content_markdown: form.content_markdown.value,
+    category_id: categoryId,
+    lesson_id: lessonId,
+    tag_ids: tagIds,
+    category: state.categories.find((item) => item.id === categoryId) || null,
+    lesson: state.lessons.find((item) => item.id === lessonId) || null,
+    tags: state.tags.filter((tag) => tagIds.includes(tag.id)),
     plugin_data: buildPluginData(seed.plugin_data),
   });
 }
@@ -921,7 +1107,15 @@ function closeMetadataDialog() {
 }
 
 function toggleInsertMenu() {
-  elements.insertMenu.hidden = !elements.insertMenu.hidden;
+  setInsertMenuOpen(elements.insertMenu.hidden);
+}
+
+function setInsertMenuOpen(open) {
+  elements.insertMenu.hidden = !open;
+  elements.insertTrigger?.setAttribute("aria-expanded", String(open));
+  if (open) {
+    elements.insertMenu.querySelector("button")?.focus();
+  }
 }
 
 function renderInsertMenu() {
@@ -960,7 +1154,16 @@ function closeInsertMenuOnOutsideClick(event) {
   if (event.target.closest("#insert-menu") || event.target.closest('[data-action="toggle-insert-menu"]')) {
     return;
   }
-  elements.insertMenu.hidden = true;
+  setInsertMenuOpen(false);
+}
+
+function handleGlobalKeydown(event) {
+  if (event.key !== "Escape" || elements.insertMenu.hidden) {
+    return;
+  }
+  setInsertMenuOpen(false);
+  elements.insertTrigger?.focus();
+  event.preventDefault();
 }
 
 function insertMarkdownBlock(kind) {
@@ -970,7 +1173,7 @@ function insertMarkdownBlock(kind) {
     return;
   }
   insertAtCursor(elements.editorForm.elements.content_markdown, markdown);
-  elements.insertMenu.hidden = true;
+  setInsertMenuOpen(false);
   renderCreatorDraft();
 }
 
@@ -1001,9 +1204,9 @@ async function saveDocument(event) {
     slug: String(formData.get("slug") || "").trim(),
     summary: String(formData.get("summary") || ""),
     content_markdown: String(formData.get("content_markdown") || ""),
-    category_id: seed.category_id ?? seed.category?.id ?? null,
-    lesson_id: seed.lesson_id ?? seed.lesson?.id ?? null,
-    tag_ids: normalizeTagIds(seed),
+    category_id: selectedCategoryId(),
+    lesson_id: selectedLessonId(),
+    tag_ids: selectedTagIds(),
     plugin_data: buildPluginData(seed.plugin_data),
   };
 
@@ -1850,8 +2053,13 @@ function normalizeDocument(item = {}) {
     slug: item.slug || "",
     summary: item.summary || "",
     content_markdown: item.content_markdown || "",
+    category_id: numericId(item.category_id ?? item.category?.id),
+    lesson_id: numericId(item.lesson_id ?? item.lesson?.id),
+    category: item.category || null,
+    lesson: item.lesson || null,
     updated_at: item.updated_at || item.created_at || null,
     tags: item.tags || [],
+    tag_ids: normalizeTagIds(item),
     plugin_data: item.plugin_data || {},
   };
 }
@@ -1893,6 +2101,16 @@ function normalizeTerm(item = {}) {
   };
 }
 
+function normalizeTaxonomyItem(item = {}) {
+  return {
+    ...item,
+    id: Number(item.id),
+    name: item.name || "",
+    slug: item.slug || "",
+    position: Number(item.position || 0),
+  };
+}
+
 function normalizePlugin(item = {}) {
   return {
     ...item,
@@ -1904,9 +2122,44 @@ function normalizePlugin(item = {}) {
 
 function normalizeTagIds(documentItem) {
   if (Array.isArray(documentItem.tag_ids)) {
-    return documentItem.tag_ids;
+    return documentItem.tag_ids.map(Number).filter(Boolean);
   }
-  return (documentItem.tags || []).map((tag) => typeof tag === "object" ? tag.id : tag).filter(Boolean);
+  return (documentItem.tags || []).map((tag) => Number(typeof tag === "object" ? tag.id : tag)).filter(Boolean);
+}
+
+function selectedCategoryId() {
+  return numericId(elements.metadataCategory?.value);
+}
+
+function selectedLessonId() {
+  return numericId(elements.metadataLesson?.value);
+}
+
+function selectedTagIds() {
+  return [...elements.metadataTags.querySelectorAll('input[name="tag_ids"]:checked')]
+    .map((input) => Number(input.value))
+    .filter(Boolean);
+}
+
+function numericId(value) {
+  const id = Number(value);
+  return Number.isInteger(id) && id > 0 ? id : null;
+}
+
+function stringId(value) {
+  return value ? String(value) : "";
+}
+
+function hasOption(select, value) {
+  return !value || [...select.options].some((option) => option.value === value);
+}
+
+function compareByName(left, right) {
+  return String(left.name || left.slug).localeCompare(String(right.name || right.slug), state.language);
+}
+
+function compareByPosition(left, right) {
+  return (Number(left.position) - Number(right.position)) || compareByName(left, right);
 }
 
 function normalizeDiff(payload) {
@@ -1942,6 +2195,8 @@ function blankDocument() {
     slug: "",
     summary: "",
     content_markdown: "",
+    category_id: null,
+    lesson_id: null,
     tag_ids: [],
     plugin_data: createBlankPluginData(),
   };
@@ -2061,6 +2316,7 @@ function rerenderLocalizedContent() {
   renderRevisionList({ preserveSelection: true });
   renderGlossaryList();
   renderGlossaryDetail();
+  renderTaxonomyControls();
   renderPlugins();
   updateEditorHeading();
   renderCreatorDraft();

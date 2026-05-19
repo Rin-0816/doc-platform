@@ -275,6 +275,58 @@ class HttpApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(payload["total"], 1)
 
+    def test_taxonomy_api_connects_document_metadata(self):
+        cookie = self.login_cookie()
+        status, category, _ = self.request("POST", "/api/categories", {"name": "Security Ops"}, cookie)
+        self.assertEqual(status, 201)
+        status, lesson, _ = self.request("POST", "/api/lessons", {"name": "Incident Review"}, cookie)
+        self.assertEqual(status, 201)
+        status, tag, _ = self.request("POST", "/api/tags", {"name": "Runbook"}, cookie)
+        self.assertEqual(status, 201)
+
+        status, categories, _ = self.request("GET", "/api/categories", cookie=cookie)
+        self.assertEqual(status, 200)
+        self.assertTrue(any(item["id"] == category["id"] for item in categories["items"]))
+
+        status, created, _ = self.request(
+            "POST",
+            "/api/documents",
+            {
+                "title": "Taxonomy doc",
+                "slug": "taxonomy-doc",
+                "content_markdown": "body",
+                "category_id": category["id"],
+                "lesson_id": lesson["id"],
+                "tag_ids": [tag["id"]],
+            },
+            cookie,
+        )
+        self.assertEqual(status, 201)
+        document = created["document"]
+        self.assertEqual(document["category"]["name"], "Security Ops")
+        self.assertEqual(document["lesson"]["name"], "Incident Review")
+        self.assertEqual(document["tags"][0]["name"], "Runbook")
+
+        status, payload, _ = self.request("GET", f"/api/search?category_id={category['id']}", cookie=cookie)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["total"], 1)
+
+        status, payload, _ = self.request("GET", "/api/search?category_id=999999", cookie=cookie)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["total"], 0)
+
+        status, payload, _ = self.request("GET", "/api/search?type=glossary&q=Mermaid", cookie=cookie)
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["total"], 1)
+
+    def test_taxonomy_create_requires_editor(self):
+        status, _, headers = self.request("POST", "/api/auth/login", {"username": "viewer", "password": "viewer"})
+        self.assertEqual(status, 200)
+        viewer_cookie = headers["Set-Cookie"].split(";", 1)[0]
+        status, payload, _ = self.request("POST", "/api/tags", {"name": "Viewer Tag"}, viewer_cookie)
+        self.assertEqual(status, 403)
+        self.assertEqual(payload["error"]["code"], "permission_denied")
+
     def test_unauthenticated_document_access_is_rejected(self):
         status, payload, _ = self.request("GET", "/api/documents")
         self.assertEqual(status, 401)

@@ -3,6 +3,7 @@ from __future__ import annotations
 import difflib
 import hashlib
 import json
+import re
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -28,6 +29,10 @@ def utc_now() -> str:
 
 def password_hash(password: str) -> str:
     return hashlib.sha256(password.encode("utf-8")).hexdigest()
+
+
+def normalize_slug(value: str) -> str:
+    return re.sub(r"[^a-z0-9]+", "-", value.lower()).strip("-")
 
 
 @contextmanager
@@ -289,43 +294,127 @@ def user_roles(connection: sqlite3.Connection, user_id: int) -> list[str]:
     ]
 
 
-def list_documents(connection: sqlite3.Connection, query: str = "", limit: int = 20, offset: int = 0) -> dict[str, Any]:
+def list_documents(
+    connection: sqlite3.Connection,
+    query: str = "",
+    limit: int = 20,
+    offset: int = 0,
+    category_id: int | None = None,
+    lesson_id: int | None = None,
+    tag: str | None = None,
+) -> dict[str, Any]:
+    clauses = ["d.deleted_at IS NULL"]
+    values: list[Any] = []
+    source = "documents d"
+    joins: list[str] = []
     if query:
-        rows = connection.execute(
-            """
-            SELECT d.*
-            FROM documents_fts f
-            JOIN documents d ON d.id = f.rowid
-            WHERE documents_fts MATCH ? AND d.deleted_at IS NULL
-            ORDER BY d.updated_at DESC
-            LIMIT ? OFFSET ?
-            """,
-            (query, limit, offset),
-        ).fetchall()
-        total = connection.execute(
-            """
-            SELECT COUNT(*) AS count
-            FROM documents_fts f
-            JOIN documents d ON d.id = f.rowid
-            WHERE documents_fts MATCH ? AND d.deleted_at IS NULL
-            """,
-            (query,),
-        ).fetchone()["count"]
-    else:
-        rows = connection.execute(
-            """
-            SELECT *
-            FROM documents
-            WHERE deleted_at IS NULL
-            ORDER BY updated_at DESC
-            LIMIT ? OFFSET ?
-            """,
-            (limit, offset),
-        ).fetchall()
-        total = connection.execute(
-            "SELECT COUNT(*) AS count FROM documents WHERE deleted_at IS NULL"
-        ).fetchone()["count"]
+        source = "documents_fts f JOIN documents d ON d.id = f.rowid"
+        clauses.append("documents_fts MATCH ?")
+        values.append(query)
+    if category_id:
+        clauses.append("d.category_id = ?")
+        values.append(category_id)
+    if lesson_id:
+        clauses.append("d.lesson_id = ?")
+        values.append(lesson_id)
+    if tag:
+        joins.extend(
+            [
+                "JOIN document_tags dt ON dt.document_id = d.id",
+                "JOIN tags t ON t.id = dt.tag_id",
+            ]
+        )
+        clauses.append("(t.slug = ? OR t.name = ?)")
+        values.extend((tag, tag))
+
+    where = " AND ".join(clauses)
+    join_sql = " ".join(joins)
+    rows = connection.execute(
+        f"""
+        SELECT DISTINCT d.*
+        FROM {source}
+        {join_sql}
+        WHERE {where}
+        ORDER BY d.updated_at DESC
+        LIMIT ? OFFSET ?
+        """,
+        (*values, limit, offset),
+    ).fetchall()
+    total = connection.execute(
+        f"""
+        SELECT COUNT(DISTINCT d.id) AS count
+        FROM {source}
+        {join_sql}
+        WHERE {where}
+        """,
+        values,
+    ).fetchone()["count"]
     return {"items": [serialize_document(connection, row) for row in rows], "total": total}
+
+
+def list_categories(connection: sqlite3.Connection) -> list[dict[str, Any]]:
+    return [dict(row) for row in connection.execute("SELECT * FROM categories ORDER BY name")]
+
+
+def list_lessons(connection: sqlite3.Connection) -> list[dict[str, Any]]:
+    return [dict(row) for row in connection.execute("SELECT * FROM lessons ORDER BY position, name")]
+
+
+def list_tags(connection: sqlite3.Connection) -> list[dict[str, Any]]:
+    return [dict(row) for row in connection.execute("SELECT * FROM tags ORDER BY name")]
+
+
+def create_category(connection: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, Any]:
+    name = required_taxonomy_name(payload)
+    slug = taxonomy_slug(connection, "categories", payload, name)
+    cursor = connection.execute("INSERT INTO categories (name, slug) VALUES (?, ?)", (name, slug))
+    connection.commit()
+    return dict(connection.execute("SELECT * FROM categories WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+def create_lesson(connection: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, Any]:
+    name = required_taxonomy_name(payload)
+    slug = taxonomy_slug(connection, "lessons", payload, name)
+    position = payload.get("position")
+    if position is None:
+        position = connection.execute("SELECT COALESCE(MAX(position), 0) + 1 AS next_position FROM lessons").fetchone()[
+            "next_position"
+        ]
+    try:
+        position = int(position)
+    except (TypeError, ValueError) as exc:
+        raise ValueError("position must be an integer.") from exc
+    cursor = connection.execute(
+        "INSERT INTO lessons (name, slug, position) VALUES (?, ?, ?)",
+        (name, slug, position),
+    )
+    connection.commit()
+    return dict(connection.execute("SELECT * FROM lessons WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+def create_tag(connection: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, Any]:
+    name = required_taxonomy_name(payload)
+    slug = taxonomy_slug(connection, "tags", payload, name)
+    cursor = connection.execute("INSERT INTO tags (name, slug) VALUES (?, ?)", (name, slug))
+    connection.commit()
+    return dict(connection.execute("SELECT * FROM tags WHERE id = ?", (cursor.lastrowid,)).fetchone())
+
+
+def required_taxonomy_name(payload: dict[str, Any]) -> str:
+    name = str(payload.get("name") or "").strip()
+    if not name:
+        raise ValueError("name is required.")
+    return name
+
+
+def taxonomy_slug(connection: sqlite3.Connection, table: str, payload: dict[str, Any], name: str) -> str:
+    base = normalize_slug(str(payload.get("slug") or name)) or "item"
+    slug = base
+    suffix = 2
+    while connection.execute(f"SELECT 1 FROM {table} WHERE slug = ?", (slug,)).fetchone():
+        slug = f"{base}-{suffix}"
+        suffix += 1
+    return slug
 
 
 def create_document(connection: sqlite3.Connection, payload: dict[str, Any], user_id: int) -> dict[str, Any]:
@@ -566,6 +655,31 @@ def list_glossary(connection: sqlite3.Connection, limit: int = 100, offset: int 
         (limit, offset),
     ).fetchall()
     total = connection.execute("SELECT COUNT(*) AS count FROM glossary_terms").fetchone()["count"]
+    return {"items": [dict(row) for row in rows], "total": total}
+
+
+def search_glossary(connection: sqlite3.Connection, query: str = "", limit: int = 100, offset: int = 0) -> dict[str, Any]:
+    if not query:
+        return list_glossary(connection, limit=limit, offset=offset)
+    pattern = f"%{query.lower()}%"
+    rows = connection.execute(
+        """
+        SELECT *
+        FROM glossary_terms
+        WHERE lower(term || ' ' || description_markdown) LIKE ?
+        ORDER BY term
+        LIMIT ? OFFSET ?
+        """,
+        (pattern, limit, offset),
+    ).fetchall()
+    total = connection.execute(
+        """
+        SELECT COUNT(*) AS count
+        FROM glossary_terms
+        WHERE lower(term || ' ' || description_markdown) LIKE ?
+        """,
+        (pattern,),
+    ).fetchone()["count"]
     return {"items": [dict(row) for row in rows], "total": total}
 
 

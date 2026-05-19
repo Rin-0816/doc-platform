@@ -65,6 +65,12 @@ def build_handler(context: AppContext):
                         return self.handle_comments(method, parts[2:], connection, user)
                     if parts[:2] == ["api", "revisions"]:
                         return self.handle_revisions(method, parts[2:], parsed.query, connection, user)
+                    if parts[:2] == ["api", "categories"]:
+                        return self.handle_taxonomy("categories", method, parts[2:], connection, user)
+                    if parts[:2] == ["api", "lessons"]:
+                        return self.handle_taxonomy("lessons", method, parts[2:], connection, user)
+                    if parts[:2] == ["api", "tags"]:
+                        return self.handle_taxonomy("tags", method, parts[2:], connection, user)
                     if parts[:2] == ["api", "glossary"]:
                         return self.handle_glossary(method, parts[2:], parsed.query, connection, user)
                     if parts[:2] == ["api", "search"]:
@@ -330,6 +336,35 @@ def build_handler(context: AppContext):
                 return self.json_response(term) if term else self.json_error("not_found", "Glossary term not found.", HTTPStatus.NOT_FOUND)
             return self.json_error("not_found", "Glossary endpoint not found.", HTTPStatus.NOT_FOUND)
 
+        def handle_taxonomy(self, kind, method, parts, connection, user):
+            if not self.require_role(user, "viewer"):
+                return
+            if parts:
+                return self.json_error("not_found", f"{kind.title()} endpoint not found.", HTTPStatus.NOT_FOUND)
+            listers = {
+                "categories": db.list_categories,
+                "lessons": db.list_lessons,
+                "tags": db.list_tags,
+            }
+            creators = {
+                "categories": db.create_category,
+                "lessons": db.create_lesson,
+                "tags": db.create_tag,
+            }
+            if method == "GET":
+                items = listers[kind](connection)
+                return self.json_response({"items": items, "total": len(items), "page": 1, "page_size": len(items)})
+            if method == "POST":
+                if not self.require_role(user, "editor"):
+                    return
+                try:
+                    return self.json_response(creators[kind](connection, self.read_json()), HTTPStatus.CREATED)
+                except ValueError as exc:
+                    return self.json_error("validation_error", str(exc), HTTPStatus.BAD_REQUEST)
+                except Exception as exc:
+                    return self.json_error("conflict", str(exc), HTTPStatus.CONFLICT)
+            return self.json_error("not_found", f"{kind.title()} endpoint not found.", HTTPStatus.NOT_FOUND)
+
         def handle_search(self, method, query, connection, user):
             if method != "GET":
                 return self.json_error("not_found", "Search endpoint not found.", HTTPStatus.NOT_FOUND)
@@ -337,7 +372,25 @@ def build_handler(context: AppContext):
                 return
             params = parse_qs(query)
             page, page_size = self.page_args(params)
-            payload = db.list_documents(connection, params.get("q", [""])[0], page_size, (page - 1) * page_size)
+            search_type = params.get("type", ["document"])[0] or "document"
+            if search_type == "glossary":
+                payload = db.search_glossary(connection, params.get("q", [""])[0], page_size, (page - 1) * page_size)
+            elif search_type == "document":
+                category_id = self.query_int(params, "category_id")
+                lesson_id = self.query_int(params, "lesson_id")
+                if category_id is False or lesson_id is False:
+                    return
+                payload = db.list_documents(
+                    connection,
+                    params.get("q", [""])[0],
+                    page_size,
+                    (page - 1) * page_size,
+                    category_id=category_id,
+                    lesson_id=lesson_id,
+                    tag=params.get("tag", [None])[0],
+                )
+            else:
+                return self.json_error("validation_error", "type must be document or glossary.", HTTPStatus.BAD_REQUEST)
             payload.update({"page": page, "page_size": page_size})
             return self.json_response(payload)
 
@@ -427,6 +480,16 @@ def build_handler(context: AppContext):
             except (TypeError, ValueError):
                 self.json_error("validation_error", "ID must be an integer.", HTTPStatus.BAD_REQUEST)
                 return None
+
+        def query_int(self, params, name):
+            value = params.get(name, [None])[0]
+            if value in (None, ""):
+                return None
+            try:
+                return int(value)
+            except (TypeError, ValueError):
+                self.json_error("validation_error", f"{name} must be an integer.", HTTPStatus.BAD_REQUEST)
+                return False
 
         def read_json(self):
             length = int(self.headers.get("Content-Length", "0"))

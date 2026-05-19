@@ -27,13 +27,14 @@ Implemented:
 - seeded users: `admin`, `editor`, `viewer`
 - local session login
 - document CRUD
+- category, lesson, tag list/create APIs
 - revision history, diff, restore
 - plugin metadata snapshots in revisions and restore
 - glossary read APIs
 - image attachment upload/file serving
 - comment creation/listing/update/status APIs with target validation
 - text comment re-anchoring and orphan handling
-- SQLite FTS search
+- SQLite FTS search with document category/lesson/tag filters and glossary search
 - plugin discovery, registry sync, compatibility checks, migration execution
 - generic plugin runtime delegation for document plugin data load/save/restore
 - plugin frontend module discovery and serving
@@ -53,13 +54,14 @@ Implemented:
 - document detail rendering
 - Markdown preview and Mermaid rendering
 - editor view
+- compact metadata dialog with title, summary, category, lesson, and tag editing
 - revision history and diff controls
 - image upload insertion in the editor
 - visible comment interactions for document/text/image/Mermaid targets
 - ICT learning edit/detail panels when the plugin is enabled
 - dynamic frontend plugin module loading for enabled plugins
 - plugin panel hosts for viewer, creator, and creator preview
-- block insertion menu generated from core/plugin block definitions
+- block insertion menu generated from core/plugin block definitions, placed in the editor toolbar
 - glossary panel
 - plugin admin panel
 - role-aware control hiding
@@ -142,7 +144,7 @@ Read in this order when resuming:
 
 Not yet implemented:
 
-- category, lesson, tag management APIs
+- category, lesson, tag update/delete administration beyond the current list/create API and editor quick-add flow
 - glossary create/edit APIs
 - real auth provider plugin support beyond documented extension point
 - real search provider replacement beyond documented extension point
@@ -160,8 +162,8 @@ Not yet implemented:
 
 Priority order:
 
-1. Add tag/category/lesson APIs and editable UI
-2. Add glossary create/edit APIs and related document links
+1. Add glossary create/edit APIs and related document links
+2. Add update/delete administration for categories, lessons, and tags if required beyond the current list/create flow
 3. Add real auth provider and search provider runtime support
 4. Run remaining cross-browser verification beyond the completed Chrome desktop/mobile pass
 5. Add backup automation and operational tooling
@@ -177,7 +179,7 @@ Priority order:
 
 Remaining before full milestone closure:
 
-- tag/category/lesson editing flow
+- category/lesson/tag update/delete administration beyond editor quick-add
 - cross-browser verification beyond the completed Chrome desktop/mobile flow
 
 ## 10. Recent Implementation Decisions
