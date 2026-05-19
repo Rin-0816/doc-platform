@@ -27,19 +27,27 @@
 | `tags` | `id`, `name`, `slug` |
 | `document_tags` | `document_id`, `tag_id` |
 | `glossary_terms` | `id`, `term`, `slug`, `description_markdown`, `created_at`, `updated_at` |
+| `glossary_term_aliases` | `id`, `term_id`, `alias`, `alias_slug`, `position` |
+| `glossary_term_tags` | `term_id`, `tag_id` |
 | `glossary_term_documents` | `term_id`, `document_id` |
+| `glossary_revisions` | `id`, `term_id`, `version_number`, `term`, `slug`, `description_markdown`, `aliases_json`, `tag_ids_json`, `created_by`, `created_at`, `restored_from_revision_id` |
 | `comments` | `id`, `document_id`, `target_type`, `target_payload_json`, `body`, `status`, `revision_id`, `created_by`, `created_at`, `updated_at` |
 | `revisions` | `id`, `document_id`, `version_number`, `content_markdown`, `summary`, `plugin_data_json`, `created_by`, `created_at`, `restored_from_revision_id` |
 | `plugins` | `id`, `name`, `version`, `status`, `enabled_at`, `disabled_at`, `last_checked_at`, `manifest_json` |
 | `schema_migrations` | `version`, `applied_at`, `source` |
+| `app_settings` | `key`, `value`, `updated_at` |
 
 ## 4. 関連と制約
 
 - 全 FK は有効化する
 - `documents.slug`、`tags.slug`、`categories.slug`、`lessons.slug`、`glossary_terms.slug` は一意
 - `revisions(document_id, version_number)` は一意
+- `glossary_revisions(term_id, version_number)` は一意
 - `document_tags(document_id, tag_id)` は複合一意
+- `glossary_term_aliases(term_id, alias_slug)` は複合一意。`alias_slug` はグロッサリ全体で実質一意 (登録時に既存 `term.slug` / 他用語 `alias_slug` と衝突を拒否)
+- `glossary_term_aliases` と `glossary_term_tags` は `glossary_terms(id) ON DELETE CASCADE`
 - `comments.revision_id` はコメント作成時の対象版を示す
+- `app_settings.key` は文字列主キー。代表値: `glossary_autolink` (`"on"` または `"off"`)
 
 ## 5. 削除方針
 
@@ -63,8 +71,18 @@
 
 - 標準検索は SQLite FTS を使用
 - `documents_fts` と `glossary_terms_fts` を持つ
-- FTS は文書保存時に更新する
+- FTS は文書保存時と用語保存時に更新する
+- 用語の FTS インデックスには `term` と alias 文字列を含める
 - 将来の `search_provider` 差し替え時も、API 契約は維持する
+
+## 7-bis. 用語 (Glossary) 詳細
+
+- `glossary_terms` が用語本体。slug は一意
+- `glossary_term_aliases` は別名 (例: `Database` の alias `DB`, `RDBMS`)。`[[]]` 解決時に用語名・slug に加えて alias もマッチ対象
+- `glossary_term_tags` は用語自体のタグ。文書タグ表 `document_tags` とは独立だが `tags` テーブルを共用
+- `glossary_term_documents` は明示的な関連付け用 (将来の手動キュレーション)。現行の関連文書一覧は本文中の `[[]]` 走査で導出
+- `glossary_revisions` で用語ごとの履歴を保持。create/update 時に snapshot、restore 時にも snapshot
+- `app_settings.glossary_autolink` が `"on"` のとき、本文中の生テキスト中で既知の用語名・別名を自動リンク化 (既定 `"off"`、誤マッチを避けるため opt-in)
 
 ## 8. プラグインデータ
 

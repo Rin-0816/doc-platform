@@ -4,7 +4,7 @@
 | --- | --- |
 | FR-001 - FR-012 | `core-functional-specification.md`, `api-specification.md`, `screen-specification.md`, `database-design.md` |
 | FR-013 - FR-017 | `comment-specification.md`, `api-specification.md`, `database-design.md` |
-| FR-018 - FR-020 | `core-functional-specification.md`, `api-specification.md` |
+| FR-018 - FR-020 | `core-functional-specification.md`, `api-specification.md`, `screen-specification.md`, `database-design.md` (用語 CRUD + 履歴 + alias + bulk import + autolink 設定として実装) |
 | FR-021 - FR-023 | `permission-design.md`, `api-specification.md` |
 | FR-024 - FR-028 | `plugin-specification.md`, `compatibility-check-specification.md`, `plugin-development-guide.md` |
 | FR-029 - FR-037 | `ict-learning-plugin-specification.md` |

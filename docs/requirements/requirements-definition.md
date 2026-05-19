@@ -261,14 +261,17 @@
 ## 12. 今後決める事項
 
 - 認証方式の詳細
-- コメントアンカーの保持方式
-- 画像コメントの座標表現
-- Mermaid 図コメントの対象単位
-- プラグイン API の具体的な拡張点
-- DB マイグレーション方式
-- 差分表示の粒度
-- 用語の自動リンク有無
+- 画像コメントの座標表現の更なる調整
 - バックアップと復元の運用
+
+## 12-bis. 決定済み事項 (実装に反映)
+
+- コメントアンカー: テキスト選択ベースの hybrid offset + 文脈マッチで再アンカリング、はぐれは orphan ステータス
+- Mermaid 図コメント: ブロック単位
+- プラグイン拡張点: document_metadata / templates / view_panels / edit_panels / validators / search_extensions / content_types / auth_provider / search_provider
+- DB マイグレーション: コアは `initialize_database` で `CREATE TABLE IF NOT EXISTS`、プラグインは `plugins/<id>/migrations/NNNN_*.sql` を manifest で宣言
+- 差分表示: `difflib.unified_diff` 行ベース (文書本文と用語説明の両方)
+- 用語の自動リンク: `app_settings.glossary_autolink` で opt-in (admin 設定、既定 OFF)
 
 ## 13. 関連文書
 

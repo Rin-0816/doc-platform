@@ -2,89 +2,72 @@
 
 ## 1. Project State
 
-`doc-platform` is a standard-Python, plugin-oriented internal documentation platform prototype.
-
-Current phase:
-
-- design documents completed and refined
-- next milestone implementation underway
-- attachment, comment, plugin migration, official `ict_learning` runtime, and frontend plugin module paths are implemented
-- automated tests expanded and passing
+`doc-platform` is a standard-Python, plugin-oriented internal documentation platform. The system runs on Python 3 stdlib HTTP server + SQLite, with a vanilla JS frontend (no build step). Implementation Phases 1-6 are complete; the application is feature-complete for the documented requirements.
 
 ## 2. What Exists
 
 ### Backend
 
-- `manage.py`
-- `app/db.py`
-- `app/plugin_runtime.py`
-- `app/plugins.py`
-- `app/server.py`
+- `manage.py` (CLI: `init-db`, `serve`, `check-plugins`)
+- `app/db.py` — SQLite schema, queries, glossary CRUD + revisions, wiki-link scan, FTS, settings
+- `app/plugins.py`, `app/plugin_runtime.py` — plugin discovery, lifecycle, runtime delegation
+- `app/server.py` — `ThreadingHTTPServer` request router for `/api/*`
 
 Implemented:
 
-- SQLite initialization
-- seeded users: `admin`, `editor`, `viewer`
-- local session login
-- document CRUD
-- category, lesson, tag list/create APIs
-- revision history, diff, restore
-- plugin metadata snapshots in revisions and restore
-- glossary read APIs
-- image attachment upload/file serving
-- comment creation/listing/update/status APIs with target validation
-- text comment re-anchoring and orphan handling
-- SQLite FTS search with document category/lesson/tag filters, sorting, and glossary search
-- plugin discovery, registry sync, compatibility checks, migration execution
-- generic plugin runtime delegation for document plugin data load/save/restore
-- plugin frontend module discovery and serving
-- `ict_learning` metadata persistence through the plugin runtime when enabled
-- static/template serving
+- Seeded users (admin/editor/viewer) and roles; local session login
+- Document CRUD, revision history, diff (unified), restore
+- Comments on document / text selection / image / Mermaid block; orphan-on-disappearance
+- Image attachment upload + serving
+- Categories, lessons, tags CRUD (list + create)
+- **Glossary CRUD** (editor) with aliases, tags, revisions, bulk import (admin)
+- **Wiki-link resolution** (`[[term]]`, `[[term|alt]]`, alias-aware) computed from document body scans
+- **App settings** key/value store (`app_settings`), `glossary_autolink` toggle (admin)
+- SQLite FTS5 for documents and glossary terms (alias text included)
+- Plugin discovery, registry sync, compatibility checks, migration execution
+- Generic plugin runtime delegation for `plugin_data` load/save/restore
+- Plugin frontend module discovery and serving
+- `_drain_request_body` defensive helper to avoid Windows TCP RST on permission denials
 
 ### Frontend
 
-- `templates/index.html`
-- `static/app.js`
-- `static/app.css`
+- `templates/index.html`, `static/app.js`, `static/app.css`
 
 Implemented:
 
-- login form
-- document list, organization filters, sorting, and search
-- document detail rendering
-- Markdown preview and Mermaid rendering
-- editor view
-- compact metadata dialog with title, summary, category, lesson, and tag editing
-- revision history and diff controls
-- image upload insertion in the editor
-- visible comment interactions for document/text/image/Mermaid targets
-- ICT learning edit/detail panels when the plugin is enabled
-- dynamic frontend plugin module loading for enabled plugins
-- plugin panel hosts for viewer, creator, and creator preview
-- block insertion menu generated from core/plugin block definitions, placed in the editor toolbar
-- glossary panel
-- plugin admin panel
-- role-aware control hiding
-- responsive layout for desktop, tablet, mobile
+- Notion-style design tokens with dark mode (`[data-theme="dark"]`)
+- Topbar: brand + Viewer/Creator tabs + search + New + Reference + (Sign in modal / avatar pill popover)
+- Document rail: Category → Lesson → Document tree (collapsible) + Filter popover
+- Viewer:
+  - Document detail with sticky TOC (H1-H3), related-terms chips, summary, plugin panels, markdown body
+  - Term detail (Overview / History tabs)
+  - Glossary full-page index at `#/glossary` (search, tag filter, sort, New/Bulk-import)
+- Comments side drawer (toggle from document header; count badge)
+- Creator:
+  - Inline title input
+  - Ribbon tabs (Home / Insert / Extensions / View)
+  - Live split preview (Editor / Split / Preview modes), debounced render
+  - Format toolbar (Bold/Italic/Code/Link/`[[]]`/Heading/UL/OL/Quote/CodeBlock + Promote-to-term)
+  - Save state indicator (unsaved / saving / saved HH:MM)
+  - Metadata dialog (slug/summary/category/lesson/tags) — title moved inline
+- Term editor dialog: rich (split preview + mini format toolbar), aliases, tags, slug preview + collision warning, Used-in panel
+- Smart delete dialog (type-to-confirm if referenced)
+- Red-link click → term creation; selection → Promote-to-term
+- Hash routing: `#/doc/<slug>`, `#/term/<slug>`, `#/glossary`
+- Empty state with onboarding card
+- Keyboard shortcuts overlay (`Ctrl+/`)
+- i18n EN/JA, language persisted; locale-aware date formatting
 
 ### Official Plugin Scaffold
 
-- `plugins/ict_learning/manifest.json`
-- `plugins/ict_learning/extensions.json`
-- `plugins/ict_learning/frontend.js`
-- `plugins/ict_learning/runtime.py`
-- `plugins/ict_learning/migrations/0001_initial.sql`
-- `plugins/ict_learning/templates/ict_learning_document.json`
-- `plugins/ict_learning/tests/test_scaffold.py`
+- `plugins/ict_learning/` (manifest, runtime, frontend, extensions, migrations, tests, templates)
 
-Implemented:
+### Dev Tooling
 
-- manifest contract
-- data-driven extension metadata
-- plugin-owned SQLite tables
-- runtime metadata contract used through the core plugin host
-- frontend module contract for edit/detail panels and plugin-owned translations
-- plugin-local tests
+- `.claude/settings.json` — Claude Code hook config
+- `.claude/hooks/block_applied_migration_edit.py` — refuses edits to existing `plugins/*/migrations/*.sql`
+- `.claude/skills/new-plugin/` — scaffold for new plugins
+- `.claude/skills/plugin-migration/` — scaffold for new migration
 
 ## 3. How To Run
 
@@ -109,23 +92,26 @@ Seeded credentials:
 | editor | `editor` | `editor` |
 | viewer | `viewer` | `viewer` |
 
-## 4. Verification Already Run
+If you upgrade from an earlier schema, just re-run `init-db` — all new tables use `CREATE TABLE IF NOT EXISTS`.
+
+## 4. Verification Run
 
 ```bash
-python3 -m unittest discover -s tests -v
-python3 -m unittest discover -s plugins/ict_learning/tests -v
+python3 -m unittest discover -s tests -v          # 43/43 ok
+python3 -m unittest discover -s plugins/ict_learning/tests -v  # 5/5 ok
 node --check static/app.js
 node --check plugins/ict_learning/frontend.js
 python3 manage.py --database /tmp/doc-platform-check.sqlite3 check-plugins
 ```
 
-Observed result:
+Latest results:
 
-- backend tests passed
-- plugin scaffold tests passed
-- JS syntax check passed
-- plugin frontend module syntax check passed
-- `ict_learning` compatibility check reports pending migrations before init and `OK` after init
+- Backend tests: 43/43 pass (includes 10 new glossary tests added in Phase 6)
+- Plugin scaffold tests: 5/5 pass
+- JS syntax check: pass
+- Plugin frontend syntax check: pass
+- `ict_learning` compatibility: `WARN` before init, `OK` after init
+- E2E smoke (HTML/JS/CSS markers + API round-trips): pass
 
 ## 5. Important Design Documents
 
@@ -133,62 +119,65 @@ Read in this order when resuming:
 
 1. `docs/requirements/requirements-definition.md`
 2. `docs/architecture/system-architecture.md`
-3. `docs/specs/api-specification.md`
-4. `docs/specs/database-design.md`
-5. `docs/specs/plugin-specification.md`
-6. `docs/specs/comment-specification.md`
-7. `docs/testing/master-test-plan.md`
-8. `docs/requirements/traceability-matrix.md`
+3. `docs/specs/api-specification.md` (updated with glossary CRUD, revisions, bulk, settings, wiki-link semantics)
+4. `docs/specs/database-design.md` (updated with `glossary_term_aliases`, `glossary_term_tags`, `glossary_revisions`, `app_settings`)
+5. `docs/specs/screen-specification.md` (updated with Notion-style UI, ribbon, drawer, TOC, term tabs, glossary index)
+6. `docs/specs/plugin-specification.md`
+7. `docs/specs/comment-specification.md`
+8. `docs/testing/master-test-plan.md`
+9. `docs/requirements/traceability-matrix.md`
 
 ## 6. Known Gaps
 
-Not yet implemented:
-
-- category, lesson, tag update/delete administration beyond the current list/create API and editor quick-add flow
-- glossary create/edit APIs
-- real auth provider plugin support beyond documented extension point
-- real search provider replacement beyond documented extension point
-- full cross-browser manual verification beyond Chrome desktop/mobile
-- backup automation and operational tooling
+- Real auth provider / search provider plugins (extension points documented, no working runtime sample beyond `ict_learning` shape)
+- Manual cross-browser verification on Firefox / Safari / Edge (Chrome desktop & mobile passed)
+- Backup automation and operational tooling
+- Frontend test framework (no JS unit tests; backend tests cover API contract)
+- Categories / lessons / tags update + delete administration UI beyond create + quick-add
 
 ## 7. Known Technical Notes
 
-- Python bytecode cache files are currently present under `app/__pycache__/` and `tests/__pycache__/`.
-- The current backend server uses in-memory sessions; restarting the process invalidates sessions.
-- The current compatibility checker supports simple SemVer range expressions used by the scaffold plugin.
-- SQLite FTS5 is available in the environment and is used by the standard search path.
+- Backend sessions are in-memory; server restart invalidates sessions
+- `app_settings.glossary_autolink` toggles raw-text → wiki-link conversion at render time; default off to avoid false positives
+- Compatibility checker supports simple SemVer range expressions used by the scaffold plugin
+- SQLite FTS5 is required (standard on most builds)
+- Pre-existing Windows `WSAECONNRESET` test flakes were resolved via `_drain_request_body` in `app/server.py`
 
 ## 8. Recommended Next Work
 
 Priority order:
 
-1. Add glossary create/edit APIs and related document links
-2. Add update/delete administration for categories, lessons, and tags if required beyond the current list/create flow
-3. Add real auth provider and search provider runtime support
-4. Run remaining cross-browser verification beyond the completed Chrome desktop/mobile pass
-5. Add backup automation and operational tooling
+1. Auth provider / search provider runtime sample
+2. Cross-browser verification beyond Chrome
+3. Backup automation and operational tooling
+4. Frontend testing harness for plugin-supplied JS modules
 
-## 9. Completion Criteria For The Next Milestone
+## 9. Implementation Phase Log
 
-- editor can create a document with Markdown, image, Mermaid, and ICT metadata
-- viewer can search, open, and read that document
-- comments can be added to text and images and remain visible after reload
-- history and restore work after plugin metadata updates
-- plugin enablement applies migrations and surfaces plugin fields in UI
-- automated tests cover the new workflows
+| Phase | Theme | Key deliverables |
+| --- | --- | --- |
+| 1 | Wiki minimum | `[[term]]` resolver, term full page, related docs / related terms |
+| 2 | Editor overhaul | Inline title, live split preview, format toolbar, keyboard shortcuts |
+| 3 | Viewer cleanup | Sticky TOC, comments side drawer |
+| 4 | Wiki polish | Hash routing, creator-mode glossary, term CRUD UI + API |
+| 5 | UI redesign | Notion-style tokens, dark mode, topbar (avatar + login modal), rail tree, ribbon tabs, polish (save state / empty state / shortcuts overlay) |
+| 6 | Glossary depth | Aliases, tags, revisions, rich term editor, Used-in panel, slug preview, smart delete, red-link create, Promote-to-term, glossary index, bulk import, auto-link toggle |
 
-Remaining before full milestone closure:
+## 10. Decisions Recorded
 
-- category/lesson/tag update/delete administration beyond editor quick-add
-- cross-browser verification beyond the completed Chrome desktop/mobile flow
+- Auth baseline: built-in local auth first, future extra providers via plugin
+- Search baseline: SQLite FTS first, future replacement via provider
+- Disabled plugin behavior: stop features, keep plugin-owned data
+- Core/plugin boundary: core owns runtime/frontend hosts, plugin owns runtime, frontend module, field names, UI labels, validation
+- Text comment anchoring: hybrid offset + context, orphan on disappearance
+- Mermaid comment: block-level
+- Wiki link resolution: term, slug, and alias (case-insensitive); related_documents derived from body scan, not from a manually-curated link table
+- Glossary auto-link: opt-in via `app_settings.glossary_autolink` (admin), default off
+- Visual direction: Notion-style (white background, single blue accent, thin dividers); dark theme via `[data-theme="dark"]`
+- Plugin migration files are write-once; `.claude/hooks/block_applied_migration_edit.py` enforces this in the dev environment
 
-## 10. Recent Implementation Decisions
+## 11. URLs to Bookmark
 
-- auth baseline: built-in local auth first, future extra providers via plugin
-- search baseline: SQLite FTS first, future replacement via provider
-- disabled plugin behavior: stop features, keep plugin-owned data
-- core/plugin boundary: core owns runtime/frontend hosts, plugin owns runtime, frontend module, field names, UI labels, and validation
-- text comment anchoring design: hybrid offset + context
-- Mermaid comment support: block-level first
-- backup policy in docs: daily backups with retained generations
-- UI design workflow: research, generated reference image, then implementation
+- Document detail: `http://localhost:8000/#/doc/<slug>`
+- Term detail: `http://localhost:8000/#/term/<slug>`
+- Glossary index: `http://localhost:8000/#/glossary`
