@@ -8,7 +8,7 @@ Current phase:
 
 - design documents completed and refined
 - next milestone implementation underway
-- attachment, comment, plugin migration, and official `ict_learning` runtime paths are implemented
+- attachment, comment, plugin migration, official `ict_learning` runtime, and frontend plugin module paths are implemented
 - automated tests expanded and passing
 
 ## 2. What Exists
@@ -17,6 +17,7 @@ Current phase:
 
 - `manage.py`
 - `app/db.py`
+- `app/plugin_runtime.py`
 - `app/plugins.py`
 - `app/server.py`
 
@@ -34,7 +35,9 @@ Implemented:
 - text comment re-anchoring and orphan handling
 - SQLite FTS search
 - plugin discovery, registry sync, compatibility checks, migration execution
-- `ict_learning` metadata persistence when the plugin is enabled
+- generic plugin runtime delegation for document plugin data load/save/restore
+- plugin frontend module discovery and serving
+- `ict_learning` metadata persistence through the plugin runtime when enabled
 - static/template serving
 
 ### Frontend
@@ -54,6 +57,9 @@ Implemented:
 - image upload insertion in the editor
 - visible comment interactions for document/text/image/Mermaid targets
 - ICT learning edit/detail panels when the plugin is enabled
+- dynamic frontend plugin module loading for enabled plugins
+- plugin panel hosts for viewer, creator, and creator preview
+- block insertion menu generated from core/plugin block definitions
 - glossary panel
 - plugin admin panel
 - role-aware control hiding
@@ -63,6 +69,8 @@ Implemented:
 
 - `plugins/ict_learning/manifest.json`
 - `plugins/ict_learning/extensions.json`
+- `plugins/ict_learning/frontend.js`
+- `plugins/ict_learning/runtime.py`
 - `plugins/ict_learning/migrations/0001_initial.sql`
 - `plugins/ict_learning/templates/ict_learning_document.json`
 - `plugins/ict_learning/tests/test_scaffold.py`
@@ -72,7 +80,8 @@ Implemented:
 - manifest contract
 - data-driven extension metadata
 - plugin-owned SQLite tables
-- runtime metadata contract used by the app
+- runtime metadata contract used through the core plugin host
+- frontend module contract for edit/detail panels and plugin-owned translations
 - plugin-local tests
 
 ## 3. How To Run
@@ -104,6 +113,7 @@ Seeded credentials:
 python3 -m unittest discover -s tests -v
 python3 -m unittest discover -s plugins/ict_learning/tests -v
 node --check static/app.js
+node --check plugins/ict_learning/frontend.js
 python3 manage.py --database /tmp/doc-platform-check.sqlite3 check-plugins
 ```
 
@@ -112,6 +122,7 @@ Observed result:
 - backend tests passed
 - plugin scaffold tests passed
 - JS syntax check passed
+- plugin frontend module syntax check passed
 - `ict_learning` compatibility check reports pending migrations before init and `OK` after init
 
 ## 5. Important Design Documents
@@ -140,7 +151,6 @@ Not yet implemented:
 
 ## 7. Known Technical Notes
 
-- `doc-platform/.git` exists but is not a valid Git repository.
 - Python bytecode cache files are currently present under `app/__pycache__/` and `tests/__pycache__/`.
 - The current backend server uses in-memory sessions; restarting the process invalidates sessions.
 - The current compatibility checker supports simple SemVer range expressions used by the scaffold plugin.
@@ -175,6 +185,8 @@ Remaining before full milestone closure:
 - auth baseline: built-in local auth first, future extra providers via plugin
 - search baseline: SQLite FTS first, future replacement via provider
 - disabled plugin behavior: stop features, keep plugin-owned data
+- core/plugin boundary: core owns runtime/frontend hosts, plugin owns runtime, frontend module, field names, UI labels, and validation
 - text comment anchoring design: hybrid offset + context
 - Mermaid comment support: block-level first
 - backup policy in docs: daily backups with retained generations
+- UI design workflow: research, generated reference image, then implementation
