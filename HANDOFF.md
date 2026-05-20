@@ -2,7 +2,7 @@
 
 ## 1. Project State
 
-`doc-platform` is a standard-Python, plugin-oriented internal documentation platform. The system runs on Python 3 stdlib HTTP server + SQLite, with a vanilla JS frontend (no build step). Implementation Phases 1-10 are complete plus a UX-hardening session (see §9); the application is feature-complete for the documented requirements.
+`doc-platform` is a standard-Python, plugin-oriented internal documentation platform. The system runs on Python 3 stdlib HTTP server + SQLite, with a vanilla JS frontend (no build step). Implementation Phases 1-10 are complete plus a UX-hardening session and a UI/UX polish session (see §9); the application is feature-complete for the documented requirements.
 
 ## 2. What Exists
 
@@ -130,7 +130,7 @@ Read in this order when resuming:
 ## 6. Known Gaps
 
 - Real auth provider / search provider plugins (extension points documented, no working runtime sample beyond `ict_learning` shape)
-- Manual cross-browser verification on Firefox / Safari / Edge (Chrome desktop & mobile passed); the UX-hardening session changes (avatar anchor, comment markers, side-by-side diff, attachment/backup UIs) have NOT been visually verified in a browser — only code-reviewed and unit/syntax-tested
+- The UX-hardening and UI/UX-polish session changes (avatar anchor, comment markers, side-by-side/timeline diff, attachment/backup UIs, collapsible panels, sticky header, inline slug, Back/Forward routing fix) WERE browser-verified via Playwright (Chromium) — interactions and DOM state checked live. Cross-browser verification on Firefox / Safari / Edge is still pending
 - Scheduled/automated backups (manual DB backup/restore and per-document export/import exist, but no scheduling)
 - Frontend test framework (no JS unit tests; backend tests cover API contract — now 61 tests)
 - Categories / lessons / tags update + delete administration UI beyond create + quick-add
@@ -166,6 +166,7 @@ Priority order:
 | 9 | Admin & lifecycle | Settings screen, whole-DB backup/restore, attachment orphan cleanup, document delete |
 | 10 | Editor UX | Syntax highlighting for fenced code blocks, editor↔preview scroll sync, icon tooltips, dialog/panel/drawer animations (reduced-motion aware) |
 | Session (UX hardening) | Comment & history & per-doc backup | Avatar popover re-anchored (fixed mis-alignment); comment **position markers** on anchored text + click-to-focus; **inline comment editing** (replaces window.prompt); **side-by-side GitHub-style revision diff** (documents + terms); **per-attachment delete UI** + physical file removal on delete; **per-document backup/restore** (JSON export/import with attachment URL remapping); coding-rule/file-size budgets documented |
+| Session (UI/UX polish) | History timeline, layout, slug, routing | **Timeline-driven document history** (click a version → side-by-side diff vs the immediately previous version; latest shown on open; oldest = "initial version, nothing to compare"; arbitrary 2-version compare moved into an "Advanced compare" disclosure; Restore targets the selected timeline revision); diff backend now also returns a `rows` array (`term_revision_diff_rows` added); **inline always-visible "URL name" slug field** under the title (auto-suggested, editable; fixes silent save failure on new docs with empty hidden slug); slug moved out of the metadata dialog; **sticky topbar/header**; **collapsible left rail + right aux panel** with edge re-open handles, localStorage persistence; per-document **attachment manager** (Insert tab: list/delete with physical-file removal + in-use warning); fixed first Back/Forward being swallowed after in-app navigation; dark-mode side-by-side diff per-row accent bars |
 
 ## 10. Decisions Recorded
 
@@ -181,7 +182,11 @@ Priority order:
 - Plugin migration files are write-once; `.claude/hooks/block_applied_migration_edit.py` enforces this in the dev environment
 - **No auto-save**: the editor uses explicit manual save with an unsaved-changes guard (in-app navigation + `beforeunload`); auto-save was deliberately rejected because the auto-saved copy and the live buffer appeared inconsistent to users
 - **Per-document backup** is editor-scoped JSON export/import (document + revisions + base64 attachments, with `/api/attachments/{id}` URL remapping on import); distinct from the admin whole-DB backup
-- **Side-by-side diff** is the standard history view; backend `revision_diff` returns aligned `rows` (difflib opcodes) alongside the legacy unified `diff` string
+- **Side-by-side diff** is the standard history view; backend `revision_diff` (and `term_revision_diff_rows` for glossary) returns aligned `rows` (difflib opcodes) alongside the legacy unified `diff` string
+- **Timeline-driven history**: the document history view is a clickable revision timeline; clicking a version diffs it against the immediately previous version; the latest diff is shown on open and the oldest revision shows an "initial version" message; arbitrary 2-version comparison lives behind an "Advanced compare" disclosure; Restore targets the selected timeline revision
+- **Inline slug field**: the document slug is an always-visible "URL name" field under the title (auto-suggested from the title, editable), moved out of the metadata dialog — this fixed a silent save failure when a new doc's required slug was empty and hidden
+- **Sticky header**: the topbar uses `position: sticky; top: 0` so the avatar stays pinned top-right
+- **Collapsible side panels**: the left document rail and right aux/glossary panel can fully collapse with thin edge re-open handles; collapsed state persists in localStorage and restores on load (viewer collapses both columns; creator collapses the left rail while the right keeps its slide-over)
 - **File-size budgets** and CSS/backend split strategy are documented in `docs/specs/frontend-conventions.md`; `app.css` (~3200) and `app/db.py` (~1950) are flagged split candidates to address as dedicated refactors before further growth
 
 ## 11. URLs to Bookmark
