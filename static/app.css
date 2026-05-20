@@ -1,4 +1,4 @@
-[data-theme="dark"] {
+:root[data-theme="dark"] {
   color-scheme: dark;
   --bg: #0b0d10;
   --bg-subtle: #14171b;
@@ -370,7 +370,7 @@ h3 {
   position: fixed;
   top: 56px;
   right: var(--space-5);
-  z-index: 40;
+  z-index: 200;
   min-width: 240px;
   padding: var(--space-2);
   border: 1px solid var(--line);

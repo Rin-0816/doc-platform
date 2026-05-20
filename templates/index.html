@@ -143,6 +143,122 @@
       </div>
     </dialog>
 
+    <!-- Term editor dialog (global — outside creator-mode so it opens regardless of active mode) -->
+    <dialog id="term-editor-dialog" class="term-editor-dialog">
+      <form id="term-editor-form" class="term-editor-form">
+        <div class="dialog-heading">
+          <h2 id="term-editor-title" data-i18n="new_term">New term</h2>
+          <button type="button" data-action="close-term-editor" aria-label="Close" data-i18n-aria-label="close">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <div class="term-editor-meta">
+          <label class="term-editor-name">
+            <span data-i18n="term">Term</span>
+            <input name="term" required autocomplete="off">
+          </label>
+
+          <label>
+            <span data-i18n="slug">Slug</span>
+            <input name="slug" autocomplete="off">
+            <span class="field-help"><span data-i18n="slug_help">Short name used in the URL.</span></span>
+            <span class="slug-preview" id="term-slug-preview" hidden></span>
+          </label>
+
+          <label>
+            <span data-i18n="aliases">Aliases</span>
+            <textarea name="aliases" rows="2" placeholder="One alias per line" data-i18n-placeholder="aliases_placeholder"></textarea>
+            <span class="field-help" data-i18n="aliases_help">Alternative names that also match [[wiki links]].</span>
+          </label>
+
+          <fieldset class="tag-fieldset">
+            <legend data-i18n="own_tags">Tags</legend>
+            <div id="term-editor-tags" class="tag-selector"></div>
+          </fieldset>
+
+          <div class="term-editor-usedin" id="term-editor-usedin" hidden>
+            <div class="term-editor-usedin-header">
+              <span class="term-editor-description-label" data-i18n="used_in">Used in</span>
+              <span class="muted" id="term-editor-usedin-count"></span>
+            </div>
+            <ol id="term-editor-usedin-list" class="term-editor-usedin-list"></ol>
+          </div>
+        </div>
+
+        <div class="term-editor-description">
+          <div class="term-editor-description-header">
+            <span class="term-editor-description-label" data-i18n="description">Description</span>
+            <div class="format-toolbar term-format-toolbar" data-format-target="term">
+              <button type="button" class="format-btn" data-format-action="bold" data-format-target="term" aria-label="Bold" data-i18n-aria-label="format_bold"><i data-lucide="bold" aria-hidden="true"></i></button>
+              <button type="button" class="format-btn" data-format-action="italic" data-format-target="term" aria-label="Italic" data-i18n-aria-label="format_italic"><i data-lucide="italic" aria-hidden="true"></i></button>
+              <button type="button" class="format-btn" data-format-action="inline-code" data-format-target="term" aria-label="Inline code" data-i18n-aria-label="format_inline_code"><i data-lucide="code" aria-hidden="true"></i></button>
+              <button type="button" class="format-btn" data-format-action="link" data-format-target="term" aria-label="Link" data-i18n-aria-label="format_link"><i data-lucide="link" aria-hidden="true"></i></button>
+              <button type="button" class="format-btn" data-format-action="wiki-link" data-format-target="term" aria-label="Wiki link" data-i18n-aria-label="format_wiki_link"><i data-lucide="link-2" aria-hidden="true"></i></button>
+              <span class="format-toolbar-separator"></span>
+              <button type="button" class="format-btn" data-format-action="heading" data-format-target="term" aria-label="Heading" data-i18n-aria-label="format_heading"><i data-lucide="heading" aria-hidden="true"></i></button>
+              <button type="button" class="format-btn" data-format-action="ul" data-format-target="term" aria-label="Bulleted list" data-i18n-aria-label="format_unordered_list"><i data-lucide="list" aria-hidden="true"></i></button>
+              <button type="button" class="format-btn" data-format-action="ol" data-format-target="term" aria-label="Numbered list" data-i18n-aria-label="format_ordered_list"><i data-lucide="list-ordered" aria-hidden="true"></i></button>
+              <button type="button" class="format-btn" data-format-action="quote" data-format-target="term" aria-label="Quote" data-i18n-aria-label="format_quote"><i data-lucide="quote" aria-hidden="true"></i></button>
+              <button type="button" class="format-btn" data-format-action="code-block" data-format-target="term" aria-label="Code block" data-i18n-aria-label="format_code_block"><i data-lucide="square-code" aria-hidden="true"></i></button>
+            </div>
+          </div>
+          <div class="term-editor-split">
+            <label class="term-editor-input">
+              <span class="sr-only" data-i18n="description">Description</span>
+              <textarea name="description_markdown" id="term-editor-description-textarea" rows="14"></textarea>
+            </label>
+            <div class="term-editor-preview markdown-body" id="term-editor-live-preview"></div>
+          </div>
+        </div>
+
+        <div class="button-row metadata-actions">
+          <button type="button" data-action="close-term-editor" data-i18n="cancel">Cancel</button>
+          <button class="primary" type="submit" data-i18n="save">Save</button>
+        </div>
+      </form>
+    </dialog>
+
+    <!-- Delete term dialog (global — outside creator-mode so it opens regardless of active mode) -->
+    <dialog id="delete-term-dialog" class="delete-term-dialog">
+      <div class="delete-term-body">
+        <div class="dialog-heading">
+          <h2 data-i18n="delete_term">Delete term</h2>
+          <button type="button" data-action="close-delete-term" aria-label="Close" data-i18n-aria-label="close">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+        <p id="delete-term-question"></p>
+        <div id="delete-term-warning-region" class="delete-term-warning" hidden></div>
+        <ol id="delete-term-usedin-list" class="delete-term-usedin"></ol>
+        <div id="delete-term-confirm-region" class="delete-term-confirm-row" hidden>
+          <label>
+            <span id="delete-term-confirm-label"></span>
+            <input id="delete-term-confirm-input" type="text" autocomplete="off">
+          </label>
+        </div>
+        <div class="delete-term-actions">
+          <button type="button" data-action="close-delete-term" data-i18n="cancel">Cancel</button>
+          <button type="button" id="delete-term-confirm-button" class="danger" data-action="confirm-delete-term" data-i18n="delete">Delete</button>
+        </div>
+      </div>
+    </dialog>
+
+    <!-- Unsaved changes guard dialog -->
+    <dialog id="unsaved-guard-dialog" class="delete-term-dialog">
+      <div class="delete-term-body">
+        <div class="dialog-heading">
+          <h2 data-i18n="unsaved_guard_title">Unsaved changes</h2>
+        </div>
+        <p id="unsaved-guard-body" data-i18n="unsaved_guard_body">You have unsaved changes. Save before leaving?</p>
+        <div class="delete-term-actions">
+          <button type="button" data-action="guard-cancel" data-i18n="guard_cancel">Cancel</button>
+          <button type="button" data-action="guard-discard" data-i18n="guard_discard">Discard</button>
+          <button type="button" class="primary" data-action="guard-save" data-i18n="guard_save">Save</button>
+        </div>
+      </div>
+    </dialog>
+
     <aside class="document-rail" aria-label="Documents" data-i18n-aria-label="documents">
       <div class="rail-heading">
         <h1 data-i18n="documents">Documents</h1>
@@ -488,105 +604,6 @@
             </form>
           </section>
 
-          <dialog id="term-editor-dialog" class="term-editor-dialog">
-            <form id="term-editor-form" class="term-editor-form">
-              <div class="dialog-heading">
-                <h2 id="term-editor-title" data-i18n="new_term">New term</h2>
-                <button type="button" data-action="close-term-editor" aria-label="Close" data-i18n-aria-label="close">
-                  <i data-lucide="x" aria-hidden="true"></i>
-                </button>
-              </div>
-
-              <div class="term-editor-meta">
-                <label class="term-editor-name">
-                  <span data-i18n="term">Term</span>
-                  <input name="term" required autocomplete="off">
-                </label>
-
-                <label>
-                  <span data-i18n="slug">Slug</span>
-                  <input name="slug" autocomplete="off">
-                  <span class="field-help"><span data-i18n="slug_help">Short name used in the URL.</span></span>
-                  <span class="slug-preview" id="term-slug-preview" hidden></span>
-                </label>
-
-                <label>
-                  <span data-i18n="aliases">Aliases</span>
-                  <textarea name="aliases" rows="2" placeholder="One alias per line" data-i18n-placeholder="aliases_placeholder"></textarea>
-                  <span class="field-help" data-i18n="aliases_help">Alternative names that also match [[wiki links]].</span>
-                </label>
-
-                <fieldset class="tag-fieldset">
-                  <legend data-i18n="own_tags">Tags</legend>
-                  <div id="term-editor-tags" class="tag-selector"></div>
-                </fieldset>
-
-                <div class="term-editor-usedin" id="term-editor-usedin" hidden>
-                  <div class="term-editor-usedin-header">
-                    <span class="term-editor-description-label" data-i18n="used_in">Used in</span>
-                    <span class="muted" id="term-editor-usedin-count"></span>
-                  </div>
-                  <ol id="term-editor-usedin-list" class="term-editor-usedin-list"></ol>
-                </div>
-              </div>
-
-              <div class="term-editor-description">
-                <div class="term-editor-description-header">
-                  <span class="term-editor-description-label" data-i18n="description">Description</span>
-                  <div class="format-toolbar term-format-toolbar" data-format-target="term">
-                    <button type="button" class="format-btn" data-format-action="bold" data-format-target="term" aria-label="Bold" data-i18n-aria-label="format_bold"><i data-lucide="bold" aria-hidden="true"></i></button>
-                    <button type="button" class="format-btn" data-format-action="italic" data-format-target="term" aria-label="Italic" data-i18n-aria-label="format_italic"><i data-lucide="italic" aria-hidden="true"></i></button>
-                    <button type="button" class="format-btn" data-format-action="inline-code" data-format-target="term" aria-label="Inline code" data-i18n-aria-label="format_inline_code"><i data-lucide="code" aria-hidden="true"></i></button>
-                    <button type="button" class="format-btn" data-format-action="link" data-format-target="term" aria-label="Link" data-i18n-aria-label="format_link"><i data-lucide="link" aria-hidden="true"></i></button>
-                    <button type="button" class="format-btn" data-format-action="wiki-link" data-format-target="term" aria-label="Wiki link" data-i18n-aria-label="format_wiki_link"><i data-lucide="link-2" aria-hidden="true"></i></button>
-                    <span class="format-toolbar-separator"></span>
-                    <button type="button" class="format-btn" data-format-action="heading" data-format-target="term" aria-label="Heading" data-i18n-aria-label="format_heading"><i data-lucide="heading" aria-hidden="true"></i></button>
-                    <button type="button" class="format-btn" data-format-action="ul" data-format-target="term" aria-label="Bulleted list" data-i18n-aria-label="format_unordered_list"><i data-lucide="list" aria-hidden="true"></i></button>
-                    <button type="button" class="format-btn" data-format-action="ol" data-format-target="term" aria-label="Numbered list" data-i18n-aria-label="format_ordered_list"><i data-lucide="list-ordered" aria-hidden="true"></i></button>
-                    <button type="button" class="format-btn" data-format-action="quote" data-format-target="term" aria-label="Quote" data-i18n-aria-label="format_quote"><i data-lucide="quote" aria-hidden="true"></i></button>
-                    <button type="button" class="format-btn" data-format-action="code-block" data-format-target="term" aria-label="Code block" data-i18n-aria-label="format_code_block"><i data-lucide="square-code" aria-hidden="true"></i></button>
-                  </div>
-                </div>
-                <div class="term-editor-split">
-                  <label class="term-editor-input">
-                    <span class="sr-only" data-i18n="description">Description</span>
-                    <textarea name="description_markdown" id="term-editor-description-textarea" rows="14"></textarea>
-                  </label>
-                  <div class="term-editor-preview markdown-body" id="term-editor-live-preview"></div>
-                </div>
-              </div>
-
-              <div class="button-row metadata-actions">
-                <button type="button" data-action="close-term-editor" data-i18n="cancel">Cancel</button>
-                <button class="primary" type="submit" data-i18n="save">Save</button>
-              </div>
-            </form>
-          </dialog>
-
-          <dialog id="delete-term-dialog" class="delete-term-dialog">
-            <div class="delete-term-body">
-              <div class="dialog-heading">
-                <h2 data-i18n="delete_term">Delete term</h2>
-                <button type="button" data-action="close-delete-term" aria-label="Close" data-i18n-aria-label="close">
-                  <i data-lucide="x" aria-hidden="true"></i>
-                </button>
-              </div>
-              <p id="delete-term-question"></p>
-              <div id="delete-term-warning-region" class="delete-term-warning" hidden></div>
-              <ol id="delete-term-usedin-list" class="delete-term-usedin"></ol>
-              <div id="delete-term-confirm-region" class="delete-term-confirm-row" hidden>
-                <label>
-                  <span id="delete-term-confirm-label"></span>
-                  <input id="delete-term-confirm-input" type="text" autocomplete="off">
-                </label>
-              </div>
-              <div class="delete-term-actions">
-                <button type="button" data-action="close-delete-term" data-i18n="cancel">Cancel</button>
-                <button type="button" id="delete-term-confirm-button" class="danger" data-action="confirm-delete-term" data-i18n="delete">Delete</button>
-              </div>
-            </div>
-          </dialog>
-
           <section id="preview-view" class="creator-view" aria-label="Document preview" data-i18n-aria-label="document_preview">
             <article id="creator-preview" class="document-detail">
               <header class="document-header">
@@ -723,6 +740,18 @@
   <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/mermaid@11.6.0/dist/mermaid.min.js"></script>
   <script src="https://unpkg.com/lucide@0.511.0/dist/umd/lucide.min.js"></script>
-  <script src="/static/app.js"></script>
+  <script src="/static/js/globals.js"></script>
+  <script src="/static/js/i18n.js"></script>
+  <script src="/static/js/api.js"></script>
+  <script src="/static/js/render.js"></script>
+  <script src="/static/js/rail.js"></script>
+  <script src="/static/js/viewer.js"></script>
+  <script src="/static/js/glossary.js"></script>
+  <script src="/static/js/editor.js"></script>
+  <script src="/static/js/comments.js"></script>
+  <script src="/static/js/topbar.js"></script>
+  <script src="/static/js/routing.js"></script>
+  <script src="/static/js/events.js"></script>
+  <script src="/static/js/boot.js"></script>
 </body>
 </html>
