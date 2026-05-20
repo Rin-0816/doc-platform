@@ -118,6 +118,18 @@ python3 manage.py --database /tmp/doc-platform-check.sqlite3 check-plugins
 
 `check-plugins` は未初期化 DB では migration 未適用のため `WARN` を返します。`init-db` 後は `OK` になります。
 
+### E2E テスト
+
+開発時専用の Playwright (`@playwright/test`) E2E ハーネスをリポジトリ直下に同梱しています。アプリ本体は no-build のままで変更しません。専用テスト DB (`data/_e2e.sqlite3`) に対して `python manage.py serve` をポート 8799 で起動するため、実データには触れません。
+
+```bash
+npm install              # 初回のみ
+npm run test:e2e:install # 初回のみ — Chromium をダウンロード
+npm run test:e2e         # tests/e2e/ のスペックを実行
+```
+
+Node とブラウザのダウンロードが必要です。`smoke` / `documents` / `panels` / `history` / `taxonomy` の各スペックを収録しています。
+
 ## プラグイン構成
 
 `ict_learning` は公式サンプル兼初期プラグインです。

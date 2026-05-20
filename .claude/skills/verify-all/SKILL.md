@@ -34,3 +34,15 @@ description: Run the full doc-platform verification suite — backend unittests,
    Then remove `data/_verify.sqlite3*`.
 
 Expected green baseline: backend 61+ tests OK, plugin 5 tests OK, all JS `node --check` clean.
+
+5. **End-to-end tests (optional)** — a dev-time Playwright (`@playwright/test`) harness lives at the repo root. It is additive tooling and does NOT change the no-build app. It boots `python manage.py serve` against a dedicated test DB (`data/_e2e.sqlite3`) on port 8799, so real data is untouched.
+   First-time setup (run once):
+   ```
+   npm install
+   npm run test:e2e:install   # downloads the Chromium browser
+   ```
+   Then run the suite (specs in `tests/e2e/`):
+   ```
+   npm run test:e2e
+   ```
+   Note: requires Node and the ability to download the Chromium browser. Skip this step if the environment blocks browser downloads.

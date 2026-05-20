@@ -1,0 +1,13 @@
+{
+  "name": "doc-platform-e2e",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Dev-time Playwright end-to-end test harness for doc-platform. The app itself is a no-build Python stdlib + vanilla-JS project; this package only provides E2E tooling.",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:install": "playwright install chromium"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.48.0"
+  }
+}

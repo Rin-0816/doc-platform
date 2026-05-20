@@ -11,5 +11,14 @@ data/*.db-wal
 data/attachments/
 data/backups/
 
+# Dedicated E2E test database (includes -shm/-wal sidecars)
+data/_e2e.sqlite3*
+
+# Node / Playwright E2E harness
+node_modules/
+/test-results/
+/playwright-report/
+/.playwright/
+
 # Playwright MCP artifacts
 .playwright-mcp/
