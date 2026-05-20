@@ -118,7 +118,7 @@ function rerenderLocalizedContent() {
   renderDocumentList();
   renderDocumentDetail();
   renderComments();
-  renderRevisionList({ preserveSelection: true });
+  renderRevisionList();
   renderGlossaryList();
   renderGlossaryDetail();
   renderTaxonomyControls();

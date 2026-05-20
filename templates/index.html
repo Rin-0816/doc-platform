@@ -533,6 +533,11 @@
             <form id="editor-form" class="editor-form">
               <div class="editor-title-bar">
                 <input name="title" placeholder="Document title" data-i18n-placeholder="document_title_placeholder" required autocomplete="off">
+                <label class="editor-slug-field">
+                  <span class="editor-slug-label" data-i18n="slug">URL name</span>
+                  <input name="slug" required autocomplete="off">
+                  <span class="field-help" data-i18n="slug_help">Use lowercase letters, numbers, and hyphens.</span>
+                </label>
               </div>
 
               <!-- Ribbon: tab strip + tab panels -->
@@ -636,11 +641,6 @@
                     </button>
                   </div>
                   <label>
-                    <span data-i18n="slug">Slug</span>
-                    <input name="slug" required>
-                    <span class="field-help" data-i18n="slug_help">Short name used in the URL.</span>
-                  </label>
-                  <label>
                     <span data-i18n="summary">Summary</span>
                     <textarea name="summary" rows="4"></textarea>
                   </label>
@@ -712,22 +712,27 @@
             </div>
             <div id="history-status" class="status-line" aria-live="polite"></div>
             <div class="history-layout">
-              <ol id="revision-list" class="revision-list"></ol>
+              <ol id="revision-list" class="revision-timeline" aria-label="Revision timeline" data-i18n-aria-label="revision_timeline"></ol>
               <section class="diff-pane" aria-label="Revision diff" data-i18n-aria-label="revision_diff">
-                <div class="diff-controls">
-                  <label>
-                    <span data-i18n="revision">Revision</span>
-                    <select id="diff-target"></select>
-                  </label>
-                  <label>
-                    <span data-i18n="against">Against</span>
-                    <select id="diff-against"></select>
-                  </label>
-                  <div class="button-row">
-                    <button type="button" data-action="load-diff" data-i18n="compare">Compare</button>
-                    <button type="button" data-action="restore-revision" data-role-min="editor" data-i18n="restore">Restore</button>
-                  </div>
+                <div class="diff-pane-toolbar">
+                  <button type="button" data-action="restore-revision" data-role-min="editor" data-i18n="restore">Restore</button>
                 </div>
+                <details class="advanced-compare">
+                  <summary data-i18n="advanced_compare">Advanced compare</summary>
+                  <div class="diff-controls">
+                    <label>
+                      <span data-i18n="revision">Revision</span>
+                      <select id="diff-target"></select>
+                    </label>
+                    <label>
+                      <span data-i18n="against">Against</span>
+                      <select id="diff-against"></select>
+                    </label>
+                    <div class="button-row">
+                      <button type="button" data-action="load-diff" data-i18n="compare">Compare</button>
+                    </div>
+                  </div>
+                </details>
                 <div id="diff-status" class="status-line" aria-live="polite"></div>
                 <div id="diff-output" class="diff-output"></div>
               </section>

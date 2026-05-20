@@ -119,6 +119,9 @@ function setCreatorView(view) {
   if (view === "edit") {
     renderEditorLivePreview();
   }
+  if (view === "history") {
+    enterHistoryView();
+  }
 }
 
 function setMobileView(view) {

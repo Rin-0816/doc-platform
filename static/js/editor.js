@@ -1,9 +1,32 @@
 // editor.js — Editor hydration, ribbon, format actions, preview, save, dirty guard, metadata, attachments.
 
+// Tracks whether the user has manually edited the slug field. While false,
+// the slug auto-follows the title (mirroring the term editor's URL名 behavior,
+// reusing clientNormalizeSlug from glossary.js for consistency).
+let editorSlugTouched = false;
+
+// Auto-suggest the document slug from the title until the user edits the slug.
+function maybeSuggestEditorSlug() {
+  if (editorSlugTouched) return;
+  const form = elements.editorForm?.elements;
+  if (!form) return;
+  form.slug.value = clientNormalizeSlug(form.title.value);
+}
+
+// Once the user types in the slug field, stop auto-overwriting it. An empty
+// slug re-enables auto-suggestion so clearing it lets the title drive again.
+function markEditorSlugTouched() {
+  const form = elements.editorForm?.elements;
+  editorSlugTouched = Boolean(form && String(form.slug.value || "").trim());
+}
+
 function hydrateEditor(documentItem) {
   updateEditorHeading(documentItem);
   elements.editorForm.elements.title.value = documentItem.title || "";
   elements.editorForm.elements.slug.value = documentItem.slug || "";
+  // Existing docs already have a slug; treat it as user-set so we don't clobber
+  // it. New docs (no slug) start "untouched" so the title can drive suggestions.
+  editorSlugTouched = Boolean(documentItem.slug);
   elements.editorForm.elements.summary.value = documentItem.summary || "";
   elements.editorForm.elements.content_markdown.value = documentItem.content_markdown || "";
   renderTaxonomyControls(documentItem);
@@ -833,6 +856,7 @@ function startNewDocument({ skipGuard = false } = {}) {
   state.comments = [];
   state.commentDraftTarget = null;
   state.revisions = [];
+  state.selectedRevisionId = null;
   state.editorDirty = false;
   state.editorSaving = false;
   state.lastSavedAt = null;
@@ -865,39 +889,104 @@ function promoteSelectionToTerm() {
   openTermEditorForCreation(selected);
 }
 
+/**
+ * Called when the History sub-view becomes active. If revisions aren't loaded
+ * yet, fetch them (which auto-selects the latest + shows its diff). Otherwise
+ * re-render the timeline and show the diff for the selected/latest revision so
+ * the panel is never empty.
+ */
+function enterHistoryView() {
+  if (!state.selectedDocument?.id) {
+    renderRevisionList();
+    return;
+  }
+  if (!state.revisions.length) {
+    loadRevisions(state.selectedDocument.id);
+    return;
+  }
+  if (!state.selectedRevisionId) {
+    state.selectedRevisionId = String(state.revisions[0].id);
+  }
+  renderRevisionList();
+  showTimelineDiff(state.selectedRevisionId);
+}
+
 async function loadRevisions(documentId) {
   setStatus(elements.historyStatus, t("loading_revisions"));
   try {
     const payload = await request(`/api/documents/${encodeURIComponent(documentId)}/revisions`);
     state.revisions = listItems(payload).map(normalizeRevision);
+    // Auto-select the latest revision so the timeline + diff panel are never empty.
+    state.selectedRevisionId = state.revisions.length ? String(state.revisions[0].id) : null;
     renderRevisionList();
     setStatus(elements.historyStatus, state.revisions.length ? "" : t("no_revisions_yet"));
+    if (state.selectedRevisionId) {
+      await showTimelineDiff(state.selectedRevisionId);
+    }
   } catch (error) {
     state.revisions = [];
+    state.selectedRevisionId = null;
     renderRevisionList();
     setStatus(elements.historyStatus, readableError(error), true);
   }
 }
 
-function renderRevisionList({ preserveSelection = false } = {}) {
-  const previousTarget = elements.diffTarget.value;
-  const previousAgainst = elements.diffAgainst.value;
+function renderRevisionList() {
+  // Highlight the currently-selected revision and keep the timeline DOM in sync.
+  const selectedId = state.selectedRevisionId
+    ? String(state.selectedRevisionId)
+    : state.revisions.length
+      ? String(state.revisions[0].id)
+      : null;
+  state.selectedRevisionId = selectedId;
+
+  // Compact, clickable vertical timeline (newest first). The first entry is "current".
   elements.revisionList.replaceChildren(
-    ...state.revisions.map((revision) => {
+    ...state.revisions.map((revision, index) => {
       const item = document.createElement("li");
+      item.className = "revision-timeline-item";
       const button = document.createElement("button");
       button.type = "button";
+      button.className = "revision-timeline-entry";
       button.dataset.revisionId = revision.id;
-      button.innerHTML = `
-        <strong>v${escapeHtml(String(revision.version_number ?? "?"))}</strong>
-        <span class="list-summary">${escapeHtml(revision.summary || t("no_summary"))}</span>
-        <span class="list-meta">${escapeHtml(formatDate(revision.created_at))}</span>
-      `;
+      if (String(revision.id) === selectedId) {
+        button.classList.add("is-active");
+        button.setAttribute("aria-current", "true");
+      }
+
+      const head = document.createElement("div");
+      head.className = "revision-timeline-head";
+      const version = document.createElement("span");
+      version.className = "revision-timeline-version";
+      version.textContent = `v${revision.version_number ?? "?"}`;
+      head.append(version);
+      if (index === 0) {
+        const badge = document.createElement("span");
+        badge.className = "revision-timeline-badge";
+        badge.textContent = t("current_revision");
+        head.append(badge);
+      }
+
+      const meta = document.createElement("span");
+      meta.className = "revision-timeline-date";
+      meta.textContent = formatDate(revision.created_at);
+
+      button.append(head, meta);
+
+      if (revision.summary) {
+        const summary = document.createElement("span");
+        summary.className = "revision-timeline-summary";
+        // XSS-safe: user text via textContent only.
+        summary.textContent = revision.summary;
+        button.append(summary);
+      }
+
       item.append(button);
       return item;
     }),
   );
 
+  // Keep the advanced-compare dropdowns populated for arbitrary comparisons.
   const options = state.revisions.map((revision) => {
     const option = document.createElement("option");
     option.value = revision.id;
@@ -906,26 +995,54 @@ function renderRevisionList({ preserveSelection = false } = {}) {
   });
   elements.diffTarget.replaceChildren(...options.map((option) => option.cloneNode(true)));
   elements.diffAgainst.replaceChildren(...options);
-
   if (state.revisions.length >= 2) {
-    elements.diffTarget.value = preserveSelection && state.revisions.some((revision) => String(revision.id) === previousTarget)
-      ? previousTarget
-      : state.revisions[0].id;
-    elements.diffAgainst.value = preserveSelection && state.revisions.some((revision) => String(revision.id) === previousAgainst)
-      ? previousAgainst
-      : state.revisions[1].id;
+    elements.diffTarget.value = state.revisions[0].id;
+    elements.diffAgainst.value = state.revisions[1].id;
   }
-  if (!preserveSelection) {
-    elements.diffOutput.replaceChildren();
-  }
-  setStatus(elements.diffStatus, state.revisions.length < 2 ? t("need_two_revisions") : "");
 }
 
 function selectRevision(id) {
-  elements.revisionList.querySelectorAll("button").forEach((button) => {
-    button.classList.toggle("is-active", button.dataset.revisionId === id);
-  });
-  elements.diffTarget.value = id;
+  // Clicking a timeline entry selects it and immediately diffs vN against v(N-1).
+  state.selectedRevisionId = String(id);
+  renderRevisionList();
+  showTimelineDiff(id);
+}
+
+/**
+ * Loads and renders the side-by-side diff of the selected revision (right/newer)
+ * against its immediately previous revision (left/older). For the oldest revision
+ * (no previous), shows a friendly "initial version" message instead.
+ */
+async function showTimelineDiff(id) {
+  const targetId = String(id);
+  const index = state.revisions.findIndex((revision) => String(revision.id) === targetId);
+  if (index === -1) return;
+  // state.revisions is newest-first, so the previous (older) version is at index + 1.
+  const previous = state.revisions[index + 1];
+  if (!previous) {
+    elements.diffOutput.classList.remove("diff-sxs");
+    const message = document.createElement("p");
+    message.className = "diff-sxs-empty";
+    message.textContent = t("initial_version_no_compare");
+    elements.diffOutput.replaceChildren(message);
+    setStatus(elements.diffStatus, "");
+    return;
+  }
+
+  const target = state.revisions[index];
+  const leftLabel = `v${previous.version_number ?? "?"}`;
+  const rightLabel = `v${target.version_number ?? "?"}`;
+  setStatus(elements.diffStatus, t("loading_diff"));
+  try {
+    const payload = await request(
+      `/api/revisions/${encodeURIComponent(targetId)}/diff?against=${encodeURIComponent(previous.id)}`,
+    );
+    renderSideBySideDiff(elements.diffOutput, payload?.rows, leftLabel, rightLabel);
+    setStatus(elements.diffStatus, "");
+  } catch (error) {
+    elements.diffOutput.replaceChildren();
+    setStatus(elements.diffStatus, readableError(error), true);
+  }
 }
 
 async function loadDiff() {
@@ -956,7 +1073,7 @@ async function restoreRevision() {
     setStatus(elements.diffStatus, t("no_permission"), true);
     return;
   }
-  const revisionId = elements.diffTarget.value;
+  const revisionId = state.selectedRevisionId ? String(state.selectedRevisionId) : "";
   if (!revisionId) {
     setStatus(elements.diffStatus, t("choose_revision_to_restore"), true);
     return;

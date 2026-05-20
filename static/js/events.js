@@ -434,6 +434,9 @@ function bindEvents() {
     "input",
     debounce(renderEditorLivePreview, 300),
   );
+  // URL name (slug) auto-suggest from title, mirroring the term editor.
+  elements.editorForm.elements.title?.addEventListener("input", maybeSuggestEditorSlug);
+  elements.editorForm.elements.slug?.addEventListener("input", markEditorSlugTouched);
   const termTextarea = document.querySelector("#term-editor-description-textarea");
   if (termTextarea) {
     termTextarea.addEventListener("input", debounce(renderTermEditorPreview, 300));
