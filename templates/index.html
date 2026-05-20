@@ -74,6 +74,11 @@
         <span class="avatar-menu-status" id="autolink-status"></span>
       </button>
       <div class="avatar-menu-separator"></div>
+      <button type="button" class="avatar-menu-item" role="menuitem" data-action="open-settings">
+        <i data-lucide="settings" aria-hidden="true"></i>
+        <span data-i18n="settings">Settings</span>
+      </button>
+      <div class="avatar-menu-separator"></div>
       <button type="button" class="avatar-menu-item is-danger" role="menuitem" data-action="logout" data-i18n="sign_out">Sign out</button>
     </div>
 
@@ -100,6 +105,68 @@
           <button class="primary" type="submit" data-i18n="sign_in">Sign in</button>
         </div>
       </form>
+    </dialog>
+
+    <!-- Settings dialog -->
+    <dialog id="settings-dialog" class="settings-dialog">
+      <div class="settings-modal">
+        <div class="dialog-heading">
+          <h2 data-i18n="settings">Settings</h2>
+          <button type="button" data-action="close-settings" aria-label="Close" data-i18n-aria-label="close">
+            <i data-lucide="x" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <!-- Section 1: Appearance -->
+        <section class="settings-section">
+          <h3 class="settings-section-title" data-i18n="appearance">Appearance</h3>
+          <div class="settings-row">
+            <span data-i18n="theme">Theme</span>
+            <button type="button" id="settings-theme-toggle" data-action="settings-toggle-theme"></button>
+          </div>
+        </section>
+
+        <!-- Section 2: Glossary -->
+        <section class="settings-section" data-role-min="admin">
+          <h3 class="settings-section-title" data-i18n="glossary">Glossary</h3>
+          <div class="settings-row">
+            <span data-i18n="autolink_glossary">Auto-link glossary</span>
+            <button type="button" id="settings-autolink-toggle" data-action="settings-toggle-autolink"></button>
+          </div>
+        </section>
+
+        <!-- Section 3: Extensions (Plugins) — admin only -->
+        <section class="settings-section" data-role-min="admin">
+          <h3 class="settings-section-title" data-i18n="extensions">Extensions</h3>
+          <div class="settings-section-actions">
+            <button type="button" data-action="settings-refresh-plugins" data-i18n="refresh_plugins">Refresh</button>
+          </div>
+          <div id="settings-plugin-status" class="status-line" aria-live="polite"></div>
+          <ol id="settings-plugin-list" class="plugin-list"></ol>
+        </section>
+
+        <!-- Section 4: Backups — admin only -->
+        <section class="settings-section" data-role-min="admin">
+          <h3 class="settings-section-title" data-i18n="backups">Backups</h3>
+          <div class="settings-section-actions">
+            <button type="button" data-action="create-backup" data-i18n="create_backup">Create backup</button>
+            <button type="button" data-action="load-backups" data-i18n="refresh">Refresh</button>
+          </div>
+          <div id="settings-backup-status" class="status-line" aria-live="polite"></div>
+          <ol id="settings-backup-list" class="settings-backup-list"></ol>
+        </section>
+
+        <!-- Section 5: Attachments — admin only -->
+        <section class="settings-section" data-role-min="admin">
+          <h3 class="settings-section-title" data-i18n="attachments">Attachments</h3>
+          <div class="settings-section-actions">
+            <button type="button" data-action="find-orphans" data-i18n="find_unused">Find unused</button>
+            <button type="button" id="settings-orphan-purge-btn" class="danger" data-action="purge-orphans" data-i18n="purge_unused" hidden>Purge unused</button>
+          </div>
+          <div id="settings-orphan-status" class="status-line" aria-live="polite"></div>
+          <ol id="settings-orphan-list" class="settings-orphan-list"></ol>
+        </section>
+      </div>
     </dialog>
 
     <!-- Bulk import dialog (admin only) -->
@@ -445,6 +512,7 @@
                 <i data-lucide="pencil" aria-hidden="true"></i>
               </button>
               <span id="creator-save-state" class="creator-save-state"></span>
+              <button type="button" class="danger creator-delete-btn" data-action="delete-document" data-role-min="editor" data-i18n="delete_document" id="creator-delete-btn" hidden>Delete</button>
               <button class="primary" type="submit" form="editor-form" data-role-min="editor" data-i18n="save">Save</button>
             </div>
           </header>
@@ -750,6 +818,7 @@
   <script src="/static/js/editor.js"></script>
   <script src="/static/js/comments.js"></script>
   <script src="/static/js/topbar.js"></script>
+  <script src="/static/js/settings.js"></script>
   <script src="/static/js/routing.js"></script>
   <script src="/static/js/events.js"></script>
   <script src="/static/js/boot.js"></script>

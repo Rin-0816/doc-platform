@@ -47,6 +47,7 @@ function renderRoleAwareControls() {
   renderPluginDetailPanels(elements.viewerPluginPanels, state.selectedDocument || blankDocument(), "viewer");
   renderCreatorDraft();
   updateAttachmentControls();
+  updateDeleteDocumentButton();
   renderCommentComposer();
 }
 

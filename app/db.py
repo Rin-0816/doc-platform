@@ -3,7 +3,9 @@ from __future__ import annotations
 import difflib
 import hashlib
 import json
+import os
 import re
+import shutil
 import sqlite3
 from contextlib import contextmanager
 from datetime import datetime, timezone
@@ -1380,6 +1382,156 @@ def set_setting(connection: sqlite3.Connection, key: str, value: str) -> None:
 
 def list_settings(connection: sqlite3.Connection) -> dict[str, str]:
     return {row["key"]: row["value"] for row in connection.execute("SELECT key, value FROM app_settings")}
+
+
+# ---------------------------------------------------------------------------
+# Orphan attachments
+# ---------------------------------------------------------------------------
+
+def list_orphan_attachments(connection: sqlite3.Connection) -> list[dict[str, Any]]:
+    """Return attachments whose serving URL does not appear in any non-deleted document's content_markdown."""
+    rows = connection.execute(
+        """
+        SELECT id, file_name, document_id, size_bytes, created_at
+        FROM attachments
+        WHERE deleted_at IS NULL
+        """
+    ).fetchall()
+    orphans: list[dict[str, Any]] = []
+    for row in rows:
+        attachment_id = row["id"]
+        url_pattern = f"/api/attachments/{attachment_id}"
+        match = connection.execute(
+            """
+            SELECT 1
+            FROM documents
+            WHERE deleted_at IS NULL
+              AND content_markdown LIKE ?
+            LIMIT 1
+            """,
+            (f"%{url_pattern}%",),
+        ).fetchone()
+        if not match:
+            orphans.append(dict(row))
+    return orphans
+
+
+def purge_orphan_attachments(connection: sqlite3.Connection, root: Path) -> int:
+    """Delete all orphan attachments (soft-delete DB row + best-effort file unlink). Returns count."""
+    orphans = list_orphan_attachments(connection)
+    count = 0
+    now = utc_now()
+    for orphan in orphans:
+        attachment_id = orphan["id"]
+        # Fetch full row to get storage_path before soft-deleting
+        full_row = connection.execute(
+            "SELECT * FROM attachments WHERE id = ? AND deleted_at IS NULL",
+            (attachment_id,),
+        ).fetchone()
+        if not full_row:
+            continue
+        storage_path = full_row["storage_path"]
+        connection.execute(
+            "UPDATE attachments SET deleted_at = ? WHERE id = ? AND deleted_at IS NULL",
+            (now, attachment_id),
+        )
+        # Best-effort file removal
+        if storage_path:
+            try:
+                file_path = root / storage_path
+                if file_path.exists():
+                    file_path.unlink()
+            except Exception:
+                pass
+        count += 1
+    connection.commit()
+    return count
+
+
+# ---------------------------------------------------------------------------
+# Database backup / restore
+# ---------------------------------------------------------------------------
+
+def create_backup(db_path: Path, backups_dir: Path, connection: sqlite3.Connection | None = None) -> dict[str, Any]:
+    """Create a timestamped backup of the database.
+
+    If *connection* is provided (i.e. we are inside an existing db.connect()
+    block) we use the SQLite backup API on that live connection so that we do
+    not need to open a second connection (which would cause a locking conflict
+    on Windows with WAL mode or when VACUUM INTO is attempted while the DB is
+    open elsewhere).  Otherwise we open our own connection and use VACUUM INTO.
+    """
+    backups_dir.mkdir(parents=True, exist_ok=True)
+    timestamp = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    backup_name = f"backup_{timestamp}.sqlite3"
+    backup_path = backups_dir / backup_name
+    if connection is not None:
+        # Use the SQLite online-backup API via the live connection
+        dest = sqlite3.connect(str(backup_path))
+        try:
+            connection.backup(dest)
+        finally:
+            dest.close()
+    else:
+        with connect(db_path) as conn:
+            conn.execute("VACUUM INTO ?", (str(backup_path),))
+    size_bytes = backup_path.stat().st_size
+    created_at = utc_now()
+    return {"file": backup_name, "size_bytes": size_bytes, "created_at": created_at}
+
+
+def list_backups(backups_dir: Path) -> list[dict[str, Any]]:
+    """List backup files sorted newest first."""
+    if not backups_dir.exists():
+        return []
+    items: list[dict[str, Any]] = []
+    for p in backups_dir.iterdir():
+        if p.is_file() and p.suffix == ".sqlite3" and p.name.startswith("backup_"):
+            stat = p.stat()
+            items.append({
+                "file": p.name,
+                "size_bytes": stat.st_size,
+                "created_at": datetime.fromtimestamp(stat.st_mtime, tz=timezone.utc)
+                    .replace(microsecond=0).isoformat().replace("+00:00", "Z"),
+            })
+    items.sort(key=lambda x: x["file"], reverse=True)
+    return items
+
+
+def _validate_backup_name(name: str) -> bool:
+    """Return True only if name is a safe basename with no path traversal."""
+    if not name:
+        return False
+    # Reject any path separator or traversal
+    if "/" in name or "\\" in name or ".." in name:
+        return False
+    p = Path(name)
+    # Must be a pure filename (no directory components)
+    if p.name != name:
+        return False
+    return True
+
+
+def restore_backup(target_db_path: Path, backups_dir: Path, backup_name: str) -> dict[str, Any]:
+    """Restore a backup by replacing the live DB file. Validates name strictly."""
+    if not _validate_backup_name(backup_name):
+        raise ValueError(f"Invalid backup name: '{backup_name}'.")
+    backup_path = backups_dir / backup_name
+    if not backup_path.exists():
+        raise FileNotFoundError(f"Backup '{backup_name}' not found.")
+    shutil.copy2(str(backup_path), str(target_db_path))
+    return {"restored": backup_name}
+
+
+def delete_backup(backups_dir: Path, backup_name: str) -> bool:
+    """Delete a backup file. Validates name strictly. Returns True if deleted."""
+    if not _validate_backup_name(backup_name):
+        raise ValueError(f"Invalid backup name: '{backup_name}'.")
+    backup_path = backups_dir / backup_name
+    if not backup_path.exists():
+        return False
+    backup_path.unlink()
+    return True
 
 
 # ---------------------------------------------------------------------------

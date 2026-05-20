@@ -85,7 +85,12 @@ async function handleClick(event) {
   }
 
   if (button.dataset.pluginAction) {
-    await mutatePlugin(button.dataset.pluginId, button.dataset.pluginAction);
+    // Distinguish settings-context plugins from aux-panel plugins
+    if (button.dataset.pluginContext === "settings") {
+      await mutateSettingsPlugin(button.dataset.pluginId, button.dataset.pluginAction);
+    } else {
+      await mutatePlugin(button.dataset.pluginId, button.dataset.pluginAction);
+    }
     return;
   }
 
@@ -283,6 +288,48 @@ async function handleClick(event) {
       break;
     case "toggle-glossary-autolink":
       await toggleGlossaryAutolink();
+      break;
+    case "open-settings":
+      closeAvatarMenu();
+      openSettingsDialog();
+      break;
+    case "close-settings":
+      closeSettingsDialog();
+      break;
+    case "settings-toggle-theme":
+      toggleTheme();
+      renderSettingsTheme();
+      break;
+    case "settings-toggle-autolink":
+      await settingsToggleAutolink();
+      break;
+    case "settings-refresh-plugins":
+      await loadSettingsPlugins();
+      break;
+    case "create-backup":
+      await createBackup();
+      break;
+    case "load-backups":
+      await loadSettingsBackups();
+      break;
+    case "restore-backup": {
+      const backupName = button.dataset.backupName;
+      if (backupName) await restoreBackup(backupName);
+      break;
+    }
+    case "delete-backup": {
+      const backupName = button.dataset.backupName;
+      if (backupName) await deleteBackup(backupName);
+      break;
+    }
+    case "find-orphans":
+      await findOrphanAttachments();
+      break;
+    case "purge-orphans":
+      await purgeOrphanAttachments();
+      break;
+    case "delete-document":
+      await deleteDocument();
       break;
     default:
       break;

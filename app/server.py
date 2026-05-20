@@ -79,6 +79,8 @@ def build_handler(context: AppContext):
                         return self.handle_search(method, parsed.query, connection, user)
                     if parts[:2] == ["api", "plugins"]:
                         return self.handle_plugins(method, parts[2:], connection, user)
+                    if parts[:2] == ["api", "backups"]:
+                        return self.handle_backups(method, parts[2:], connection, user)
             except Exception as exc:  # pragma: no cover - defensive boundary
                 return self.json_error("internal_error", str(exc), HTTPStatus.INTERNAL_SERVER_ERROR)
             return self.json_error("not_found", "Endpoint not found.", HTTPStatus.NOT_FOUND)
@@ -244,6 +246,19 @@ def build_handler(context: AppContext):
         def handle_attachments(self, method, parts, connection, user):
             if not self.require_role(user, "viewer"):
                 return
+            # GET /api/attachments/orphans — admin only
+            if parts == ["orphans"] and method == "GET":
+                if not self.require_role(user, "admin"):
+                    return
+                items = db.list_orphan_attachments(connection)
+                return self.json_response({"items": items, "total": len(items)})
+            # POST /api/attachments/orphans/purge — admin only
+            if parts == ["orphans", "purge"] and method == "POST":
+                if not self.require_role(user, "admin"):
+                    return
+                self._drain_request_body()
+                count = db.purge_orphan_attachments(connection, context.root)
+                return self.json_response({"purged": count})
             if len(parts) != 1:
                 return self.json_error("not_found", "Attachment endpoint not found.", HTTPStatus.NOT_FOUND)
             attachment_id = self.int_id(parts[0])
@@ -423,6 +438,54 @@ def build_handler(context: AppContext):
                 revisions = db.list_term_revisions(connection, term_id)
                 return self.json_response({"items": revisions, "total": len(revisions)})
             return self.json_error("not_found", "Glossary endpoint not found.", HTTPStatus.NOT_FOUND)
+
+        def handle_backups(self, method, parts, connection, user):
+            if not self.require_role(user, "admin"):
+                return
+            backups_dir = context.db_path.parent / "backups"
+
+            # GET /api/backups
+            if not parts and method == "GET":
+                items = db.list_backups(backups_dir)
+                return self.json_response({"items": items, "total": len(items)})
+
+            # POST /api/backups — create a new backup
+            if not parts and method == "POST":
+                self._drain_request_body()
+                try:
+                    entry = db.create_backup(context.db_path, backups_dir, connection=connection)
+                    return self.json_response(entry, HTTPStatus.CREATED)
+                except Exception as exc:
+                    return self.json_error("internal_error", str(exc), HTTPStatus.INTERNAL_SERVER_ERROR)
+
+            # POST /api/backups/restore — restore from a named backup
+            if parts == ["restore"] and method == "POST":
+                payload = self.read_json()
+                backup_name = payload.get("name")
+                if not backup_name or not isinstance(backup_name, str):
+                    return self.json_error("validation_error", "name is required.", HTTPStatus.BAD_REQUEST)
+                try:
+                    result = db.restore_backup(context.db_path, backups_dir, backup_name)
+                    return self.json_response(result)
+                except ValueError as exc:
+                    return self.json_error("validation_error", str(exc), HTTPStatus.BAD_REQUEST)
+                except FileNotFoundError as exc:
+                    return self.json_error("not_found", str(exc), HTTPStatus.NOT_FOUND)
+                except Exception as exc:
+                    return self.json_error("internal_error", str(exc), HTTPStatus.INTERNAL_SERVER_ERROR)
+
+            # DELETE /api/backups/{name} — delete a named backup file
+            if len(parts) == 1 and method == "DELETE":
+                backup_name = parts[0]
+                try:
+                    deleted = db.delete_backup(backups_dir, backup_name)
+                    return self.empty_response() if deleted else self.json_error(
+                        "not_found", f"Backup '{backup_name}' not found.", HTTPStatus.NOT_FOUND
+                    )
+                except ValueError as exc:
+                    return self.json_error("validation_error", str(exc), HTTPStatus.BAD_REQUEST)
+
+            return self.json_error("not_found", "Backup endpoint not found.", HTTPStatus.NOT_FOUND)
 
         def handle_settings(self, method, parts, connection, user):
             # GET /api/settings — viewer permission

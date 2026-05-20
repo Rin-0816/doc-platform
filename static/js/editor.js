@@ -16,6 +16,7 @@ function hydrateEditor(documentItem) {
   setStatus(elements.editorStatus, "");
   setStatus(elements.attachmentStatus, documentItem.id ? "" : t("save_before_upload"));
   updateAttachmentControls();
+  updateDeleteDocumentButton();
 }
 
 function updateEditorHeading(documentItem = state.editorSeed || blankDocument()) {
@@ -464,6 +465,13 @@ async function uploadImageAttachment() {
 
 function updateAttachmentControls() {
   elements.attachmentUploadButton.disabled = !hasRoleAtLeast("editor") || !Boolean(state.selectedDocument?.id || state.editorSeed?.id);
+}
+
+function updateDeleteDocumentButton() {
+  const btn = document.querySelector("#creator-delete-btn");
+  if (!btn) return;
+  // Show only when editing an existing saved document as editor+
+  btn.hidden = !hasRoleAtLeast("editor") || !state.selectedDocument?.id;
 }
 
 function appendMarkdownImage(url, fileName) {

@@ -516,6 +516,106 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(fetched, "test_value")
         self.assertEqual(overwritten, "updated_value")
 
+    def test_deleted_document_is_excluded(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            created = db.create_document(
+                connection,
+                {"title": "To Delete", "slug": "to-delete", "content_markdown": "body"},
+                editor_id,
+            )
+            document_id = created["document"]["id"]
+
+            # Before delete: document is visible
+            before_get = db.get_document(connection, document_id)
+            before_list = db.list_documents(connection)
+
+            db.delete_document(connection, document_id)
+
+            # After delete: document is excluded
+            after_get = db.get_document(connection, document_id)
+            after_list = db.list_documents(connection)
+
+        self.assertIsNotNone(before_get)
+        self.assertTrue(any(d["id"] == document_id for d in before_list["items"]))
+        self.assertIsNone(after_get)
+        self.assertFalse(any(d["id"] == document_id for d in after_list["items"]))
+
+    def test_list_orphan_attachments_detects_unreferenced(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            # Create a document with attachment referenced in markdown
+            created = db.create_document(
+                connection,
+                {"title": "Doc with Attachment", "slug": "doc-with-att", "content_markdown": ""},
+                editor_id,
+            )
+            document_id = created["document"]["id"]
+            # Insert attachment row directly (mirroring upload handler)
+            now = db.utc_now()
+            cursor = connection.execute(
+                """
+                INSERT INTO attachments
+                  (document_id, file_name, storage_path, mime_type, size_bytes, created_by, created_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?)
+                """,
+                (document_id, "test.png", "data/attachments/test.png", "image/png", 100, editor_id, now),
+            )
+            connection.commit()
+            attachment_id = cursor.lastrowid
+            url = f"/api/attachments/{attachment_id}"
+
+            # Reference the attachment in the document's markdown
+            connection.execute(
+                "UPDATE documents SET content_markdown = ? WHERE id = ?",
+                (f"![img]({url})", document_id),
+            )
+            connection.commit()
+
+            # With reference present: NOT an orphan
+            orphans_before = db.list_orphan_attachments(connection)
+            self.assertFalse(any(o["id"] == attachment_id for o in orphans_before),
+                             "Attachment should not be orphan when referenced in markdown")
+
+            # Remove the reference from markdown
+            connection.execute(
+                "UPDATE documents SET content_markdown = ? WHERE id = ?",
+                ("no attachment here", document_id),
+            )
+            connection.commit()
+
+            # After removing reference: IS an orphan
+            orphans_after = db.list_orphan_attachments(connection)
+            self.assertTrue(any(o["id"] == attachment_id for o in orphans_after),
+                            "Attachment should be orphan when not referenced in any doc")
+
+    def test_create_and_list_backup(self):
+        backups_dir = Path(self.tempdir.name) / "backups"
+        entry = db.create_backup(self.db_path, backups_dir)
+
+        self.assertIn("file", entry)
+        self.assertTrue(entry["file"].startswith("backup_"))
+        self.assertTrue(entry["file"].endswith(".sqlite3"))
+        self.assertGreater(entry["size_bytes"], 0)
+
+        # Backup file must exist on disk
+        backup_file = backups_dir / entry["file"]
+        self.assertTrue(backup_file.exists())
+
+        # list_backups must include it
+        items = db.list_backups(backups_dir)
+        self.assertEqual(len(items), 1)
+        self.assertEqual(items[0]["file"], entry["file"])
+
+    def test_restore_backup_rejects_path_traversal(self):
+        backups_dir = Path(self.tempdir.name) / "backups"
+        backups_dir.mkdir(parents=True, exist_ok=True)
+        traversal_names = ["../foo.sqlite3", "..\\foo.sqlite3", "sub/foo.sqlite3", ""]
+        for name in traversal_names:
+            with self.assertRaises((ValueError, FileNotFoundError),
+                                   msg=f"Expected error for name={name!r}"):
+                db.restore_backup(self.db_path, backups_dir, name)
+
 
 class HttpApiTests(unittest.TestCase):
     @classmethod
@@ -911,6 +1011,102 @@ class HttpApiTests(unittest.TestCase):
         self.assertIn("created", summary)
         self.assertEqual(len(summary["created"]), 1)
         self.assertEqual(len(summary["errors"]), 0)
+
+    def admin_cookie(self):
+        status, _, headers = self.request("POST", "/api/auth/login", {"username": "admin", "password": "admin"})
+        self.assertEqual(status, 200)
+        return headers["Set-Cookie"].split(";", 1)[0]
+
+    def viewer_cookie(self):
+        status, _, headers = self.request("POST", "/api/auth/login", {"username": "viewer", "password": "viewer"})
+        self.assertEqual(status, 200)
+        return headers["Set-Cookie"].split(";", 1)[0]
+
+    def test_backup_endpoints_require_admin(self):
+        viewer = self.viewer_cookie()
+        editor = self.login_cookie()
+        admin = self.admin_cookie()
+
+        # Viewer and editor cannot list backups
+        for cookie in (viewer, editor):
+            status, payload, _ = self.request("GET", "/api/backups", cookie=cookie)
+            self.assertEqual(status, 403, f"Expected 403 for non-admin GET /api/backups")
+            self.assertEqual(payload["error"]["code"], "permission_denied")
+
+        # Viewer and editor cannot create backups
+        for cookie in (viewer, editor):
+            status, payload, _ = self.request("POST", "/api/backups", cookie=cookie)
+            self.assertIn(status, (401, 403))
+
+        # Admin can create and list backups
+        status, entry, _ = self.request("POST", "/api/backups", cookie=admin)
+        self.assertEqual(status, 201, f"Admin should be able to create backup, got {status}")
+        self.assertIn("file", entry)
+        self.assertTrue(entry["file"].startswith("backup_"))
+
+        status, list_payload, _ = self.request("GET", "/api/backups", cookie=admin)
+        self.assertEqual(status, 200)
+        self.assertIn("items", list_payload)
+        self.assertGreaterEqual(len(list_payload["items"]), 1)
+        self.assertTrue(any(i["file"] == entry["file"] for i in list_payload["items"]))
+
+    def test_backup_restore_endpoint(self):
+        admin = self.admin_cookie()
+
+        # Create a backup first
+        status, entry, _ = self.request("POST", "/api/backups", cookie=admin)
+        self.assertEqual(status, 201)
+        backup_name = entry["file"]
+
+        # Restore it
+        status, result, _ = self.request("POST", "/api/backups/restore", {"name": backup_name}, admin)
+        self.assertEqual(status, 200)
+        self.assertEqual(result["restored"], backup_name)
+
+        # Path traversal is rejected
+        status, payload, _ = self.request("POST", "/api/backups/restore", {"name": "../evil.sqlite3"}, admin)
+        self.assertIn(status, (400, 404))
+
+    def test_attachment_orphans_endpoint_requires_admin(self):
+        viewer = self.viewer_cookie()
+        editor = self.login_cookie()
+        admin = self.admin_cookie()
+
+        # Non-admins get 403
+        for cookie in (viewer, editor):
+            status, payload, _ = self.request("GET", "/api/attachments/orphans", cookie=cookie)
+            self.assertEqual(status, 403)
+            self.assertEqual(payload["error"]["code"], "permission_denied")
+
+        # Admin can access orphans list
+        status, payload, _ = self.request("GET", "/api/attachments/orphans", cookie=admin)
+        self.assertEqual(status, 200)
+        self.assertIn("items", payload)
+
+        # Admin can purge orphans
+        status, payload, _ = self.request("POST", "/api/attachments/orphans/purge", cookie=admin)
+        self.assertEqual(status, 200)
+        self.assertIn("purged", payload)
+
+    def test_settings_roundtrip_via_api(self):
+        admin = self.admin_cookie()
+        viewer = self.viewer_cookie()
+
+        # Set a setting via admin
+        status, result, _ = self.request("PUT", "/api/settings/test_api_key", {"value": "hello"}, admin)
+        self.assertEqual(status, 200)
+        self.assertEqual(result["value"], "hello")
+
+        # Read it back via viewer (GET is viewer-accessible)
+        status, settings, _ = self.request("GET", "/api/settings", cookie=viewer)
+        self.assertEqual(status, 200)
+        self.assertEqual(settings.get("test_api_key"), "hello")
+
+        # Overwrite and verify
+        status, result, _ = self.request("PUT", "/api/settings/test_api_key", {"value": "world"}, admin)
+        self.assertEqual(status, 200)
+        status, settings, _ = self.request("GET", "/api/settings", cookie=viewer)
+        self.assertEqual(settings.get("test_api_key"), "world")
 
     def test_settings_put_requires_admin(self):
         # Viewer: 403
