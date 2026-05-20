@@ -161,8 +161,8 @@ def build_handler(context: AppContext):
                 if not self.require_role(user, "editor"):
                     return
                 payload = self.read_json()
-                if not payload.get("title") or not payload.get("slug"):
-                    return self.json_error("validation_error", "title and slug are required.", HTTPStatus.BAD_REQUEST)
+                if not payload.get("title"):
+                    return self.json_error("validation_error", "title is required.", HTTPStatus.BAD_REQUEST)
                 try:
                     return self.json_response(db.create_document(connection, payload, user["id"]), HTTPStatus.CREATED)
                 except ValueError as exc:
@@ -535,8 +535,6 @@ def build_handler(context: AppContext):
         def handle_taxonomy(self, kind, method, parts, connection, user):
             if not self.require_role(user, "viewer"):
                 return
-            if parts:
-                return self.json_error("not_found", f"{kind.title()} endpoint not found.", HTTPStatus.NOT_FOUND)
             listers = {
                 "categories": db.list_categories,
                 "lessons": db.list_lessons,
@@ -547,18 +545,50 @@ def build_handler(context: AppContext):
                 "lessons": db.create_lesson,
                 "tags": db.create_tag,
             }
-            if method == "GET":
-                items = listers[kind](connection)
-                return self.json_response({"items": items, "total": len(items), "page": 1, "page_size": len(items)})
-            if method == "POST":
-                if not self.require_role(user, "editor"):
+            updaters = {
+                "categories": db.update_category,
+                "lessons": db.update_lesson,
+                "tags": db.update_tag,
+            }
+            deleters = {
+                "categories": db.delete_category,
+                "lessons": db.delete_lesson,
+                "tags": db.delete_tag,
+            }
+            if not parts:
+                if method == "GET":
+                    items = listers[kind](connection)
+                    return self.json_response({"items": items, "total": len(items), "page": 1, "page_size": len(items)})
+                if method == "POST":
+                    if not self.require_role(user, "editor"):
+                        return
+                    try:
+                        return self.json_response(creators[kind](connection, self.read_json()), HTTPStatus.CREATED)
+                    except ValueError as exc:
+                        return self.json_error("validation_error", str(exc), HTTPStatus.BAD_REQUEST)
+                    except Exception as exc:
+                        return self.json_error("conflict", str(exc), HTTPStatus.CONFLICT)
+                return self.json_error("not_found", f"{kind.title()} endpoint not found.", HTTPStatus.NOT_FOUND)
+            if len(parts) == 1:
+                item_id = self.int_id(parts[0])
+                if item_id is None:
                     return
-                try:
-                    return self.json_response(creators[kind](connection, self.read_json()), HTTPStatus.CREATED)
-                except ValueError as exc:
-                    return self.json_error("validation_error", str(exc), HTTPStatus.BAD_REQUEST)
-                except Exception as exc:
-                    return self.json_error("conflict", str(exc), HTTPStatus.CONFLICT)
+                if method == "PUT":
+                    if not self.require_role(user, "editor"):
+                        return
+                    try:
+                        result = updaters[kind](connection, item_id, self.read_json())
+                    except ValueError as exc:
+                        return self.json_error("validation_error", str(exc), HTTPStatus.BAD_REQUEST)
+                    return self.json_response(result) if result else self.json_error(
+                        "not_found", f"{kind.title()} item not found.", HTTPStatus.NOT_FOUND
+                    )
+                if method == "DELETE":
+                    if not self.require_role(user, "editor"):
+                        return
+                    return self.empty_response() if deleters[kind](connection, item_id) else self.json_error(
+                        "not_found", f"{kind.title()} item not found.", HTTPStatus.NOT_FOUND
+                    )
             return self.json_error("not_found", f"{kind.title()} endpoint not found.", HTTPStatus.NOT_FOUND)
 
         def handle_search(self, method, query, connection, user):

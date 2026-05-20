@@ -336,6 +336,21 @@ async function handleClick(event) {
     case "find-orphans":
       await findOrphanAttachments();
       break;
+    case "load-taxonomy-admin":
+      await loadTaxonomyAdmin();
+      break;
+    case "rename-taxonomy":
+      startTaxonomyRename(button.dataset.kind, button.dataset.id);
+      break;
+    case "cancel-taxonomy-rename":
+      cancelTaxonomyRename(button.dataset.kind, button.dataset.id);
+      break;
+    case "save-taxonomy-rename":
+      await saveTaxonomyRename(button.dataset.kind, button.dataset.id);
+      break;
+    case "delete-taxonomy":
+      await deleteTaxonomyItem(button.dataset.kind, button.dataset.id, button.dataset.usage);
+      break;
     case "purge-orphans":
       await purgeOrphanAttachments();
       break;

@@ -408,15 +408,24 @@ def list_documents(
 
 
 def list_categories(connection: sqlite3.Connection) -> list[dict[str, Any]]:
-    return [dict(row) for row in connection.execute("SELECT * FROM categories ORDER BY name")]
+    items = [dict(row) for row in connection.execute("SELECT * FROM categories ORDER BY name")]
+    for item in items:
+        item["usage_count"] = count_category_references(connection, item["id"])
+    return items
 
 
 def list_lessons(connection: sqlite3.Connection) -> list[dict[str, Any]]:
-    return [dict(row) for row in connection.execute("SELECT * FROM lessons ORDER BY position, name")]
+    items = [dict(row) for row in connection.execute("SELECT * FROM lessons ORDER BY position, name")]
+    for item in items:
+        item["usage_count"] = count_lesson_references(connection, item["id"])
+    return items
 
 
 def list_tags(connection: sqlite3.Connection) -> list[dict[str, Any]]:
-    return [dict(row) for row in connection.execute("SELECT * FROM tags ORDER BY name")]
+    items = [dict(row) for row in connection.execute("SELECT * FROM tags ORDER BY name")]
+    for item in items:
+        item["usage_count"] = count_tag_references(connection, item["id"])
+    return items
 
 
 def create_category(connection: sqlite3.Connection, payload: dict[str, Any]) -> dict[str, Any]:
@@ -455,6 +464,116 @@ def create_tag(connection: sqlite3.Connection, payload: dict[str, Any]) -> dict[
     return dict(connection.execute("SELECT * FROM tags WHERE id = ?", (cursor.lastrowid,)).fetchone())
 
 
+def count_category_references(connection: sqlite3.Connection, category_id: int) -> int:
+    return connection.execute(
+        "SELECT COUNT(*) AS count FROM documents WHERE category_id = ? AND deleted_at IS NULL",
+        (category_id,),
+    ).fetchone()["count"]
+
+
+def count_lesson_references(connection: sqlite3.Connection, lesson_id: int) -> int:
+    return connection.execute(
+        "SELECT COUNT(*) AS count FROM documents WHERE lesson_id = ? AND deleted_at IS NULL",
+        (lesson_id,),
+    ).fetchone()["count"]
+
+
+def count_tag_references(connection: sqlite3.Connection, tag_id: int) -> int:
+    documents = connection.execute(
+        """
+        SELECT COUNT(DISTINCT dt.document_id) AS count
+        FROM document_tags dt
+        JOIN documents d ON d.id = dt.document_id AND d.deleted_at IS NULL
+        WHERE dt.tag_id = ?
+        """,
+        (tag_id,),
+    ).fetchone()["count"]
+    terms = connection.execute(
+        "SELECT COUNT(*) AS count FROM glossary_term_tags WHERE tag_id = ?",
+        (tag_id,),
+    ).fetchone()["count"]
+    return documents + terms
+
+
+def count_taxonomy_references(connection: sqlite3.Connection, kind: str, item_id: int) -> int:
+    counters = {
+        "categories": count_category_references,
+        "lessons": count_lesson_references,
+        "tags": count_tag_references,
+    }
+    counter = counters.get(kind)
+    if not counter:
+        raise ValueError(f"Unknown taxonomy kind '{kind}'.")
+    return counter(connection, item_id)
+
+
+def _update_taxonomy_row(connection: sqlite3.Connection, table: str, item_id: int, payload: dict[str, Any]) -> dict[str, Any] | None:
+    row = connection.execute(f"SELECT * FROM {table} WHERE id = ?", (item_id,)).fetchone()
+    if not row:
+        return None
+    name = required_taxonomy_name(payload)
+    connection.execute(f"UPDATE {table} SET name = ? WHERE id = ?", (name, item_id))
+    connection.commit()
+    return dict(connection.execute(f"SELECT * FROM {table} WHERE id = ?", (item_id,)).fetchone())
+
+
+def update_category(connection: sqlite3.Connection, category_id: int, payload: dict[str, Any]) -> dict[str, Any] | None:
+    return _update_taxonomy_row(connection, "categories", category_id, payload)
+
+
+def update_lesson(connection: sqlite3.Connection, lesson_id: int, payload: dict[str, Any]) -> dict[str, Any] | None:
+    row = connection.execute("SELECT * FROM lessons WHERE id = ?", (lesson_id,)).fetchone()
+    if not row:
+        return None
+    name = required_taxonomy_name(payload)
+    position = row["position"]
+    if payload.get("position") is not None:
+        try:
+            position = int(payload["position"])
+        except (TypeError, ValueError) as exc:
+            raise ValueError("position must be an integer.") from exc
+    connection.execute(
+        "UPDATE lessons SET name = ?, position = ? WHERE id = ?",
+        (name, position, lesson_id),
+    )
+    connection.commit()
+    return dict(connection.execute("SELECT * FROM lessons WHERE id = ?", (lesson_id,)).fetchone())
+
+
+def update_tag(connection: sqlite3.Connection, tag_id: int, payload: dict[str, Any]) -> dict[str, Any] | None:
+    return _update_taxonomy_row(connection, "tags", tag_id, payload)
+
+
+def delete_category(connection: sqlite3.Connection, category_id: int) -> bool:
+    if not connection.execute("SELECT 1 FROM categories WHERE id = ?", (category_id,)).fetchone():
+        return False
+    # Detach documents so none are left pointing at a missing category.
+    connection.execute("UPDATE documents SET category_id = NULL WHERE category_id = ?", (category_id,))
+    connection.execute("DELETE FROM categories WHERE id = ?", (category_id,))
+    connection.commit()
+    return True
+
+
+def delete_lesson(connection: sqlite3.Connection, lesson_id: int) -> bool:
+    if not connection.execute("SELECT 1 FROM lessons WHERE id = ?", (lesson_id,)).fetchone():
+        return False
+    connection.execute("UPDATE documents SET lesson_id = NULL WHERE lesson_id = ?", (lesson_id,))
+    connection.execute("DELETE FROM lessons WHERE id = ?", (lesson_id,))
+    connection.commit()
+    return True
+
+
+def delete_tag(connection: sqlite3.Connection, tag_id: int) -> bool:
+    if not connection.execute("SELECT 1 FROM tags WHERE id = ?", (tag_id,)).fetchone():
+        return False
+    # Remove every join-table reference before deleting the tag itself.
+    connection.execute("DELETE FROM document_tags WHERE tag_id = ?", (tag_id,))
+    connection.execute("DELETE FROM glossary_term_tags WHERE tag_id = ?", (tag_id,))
+    connection.execute("DELETE FROM tags WHERE id = ?", (tag_id,))
+    connection.commit()
+    return True
+
+
 def required_taxonomy_name(payload: dict[str, Any]) -> str:
     name = str(payload.get("name") or "").strip()
     if not name:
@@ -474,6 +593,11 @@ def taxonomy_slug(connection: sqlite3.Connection, table: str, payload: dict[str,
 
 def create_document(connection: sqlite3.Connection, payload: dict[str, Any], user_id: int) -> dict[str, Any]:
     now = utc_now()
+    # Auto-derive a unique slug when the user leaves it empty (e.g. Japanese-only
+    # titles slugify to ""). A provided slug is kept as-is (no uniquification).
+    slug = str(payload.get("slug") or "").strip()
+    if not slug:
+        slug = _unique_document_slug(connection, str(payload.get("title") or ""))
     cursor = connection.execute(
         """
         INSERT INTO documents
@@ -482,7 +606,7 @@ def create_document(connection: sqlite3.Connection, payload: dict[str, Any], use
         """,
         (
             payload["title"],
-            payload["slug"],
+            slug,
             payload.get("summary", ""),
             payload.get("content_markdown", ""),
             payload.get("category_id"),
@@ -517,6 +641,8 @@ def update_document(connection: sqlite3.Connection, document_id: int, payload: d
     if not row:
         return None
     now = utc_now()
+    # An empty slug on update keeps the document's existing slug (never blank it).
+    slug = str(payload.get("slug") or "").strip() or row["slug"]
     connection.execute(
         """
         UPDATE documents
@@ -525,7 +651,7 @@ def update_document(connection: sqlite3.Connection, document_id: int, payload: d
         """,
         (
             payload["title"],
-            payload["slug"],
+            slug,
             payload.get("summary", ""),
             payload.get("content_markdown", ""),
             payload.get("category_id"),

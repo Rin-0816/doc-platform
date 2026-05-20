@@ -435,8 +435,8 @@ async function saveDocument(event) {
     plugin_data: buildPluginData(seed.plugin_data),
   };
 
-  if (!body.title || !body.slug) {
-    setStatus(elements.editorStatus, t("title_slug_required"), true);
+  if (!body.title) {
+    setStatus(elements.editorStatus, t("title_required"), true);
     return;
   }
 

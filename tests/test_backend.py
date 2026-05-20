@@ -112,6 +112,62 @@ class BackendTests(unittest.TestCase):
 
         self.assertEqual(result["result"], "OK")
 
+    def test_create_document_with_japanese_title_and_empty_slug_derives_slug(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            created = db.create_document(
+                connection,
+                {"title": "日本語のタイトル", "slug": "", "content_markdown": "body"},
+                editor_id,
+            )
+        self.assertTrue(created["document"]["slug"])
+        self.assertEqual(created["document"]["slug"], "document")
+
+    def test_create_document_keeps_explicit_slug(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            created = db.create_document(
+                connection,
+                {"title": "日本語のタイトル", "slug": "my-custom-slug", "content_markdown": "body"},
+                editor_id,
+            )
+        self.assertEqual(created["document"]["slug"], "my-custom-slug")
+
+    def test_two_empty_slug_docs_with_same_japanese_title_are_unique(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            first = db.create_document(
+                connection,
+                {"title": "同じタイトル", "slug": "", "content_markdown": "a"},
+                editor_id,
+            )
+            second = db.create_document(
+                connection,
+                {"title": "同じタイトル", "slug": "", "content_markdown": "b"},
+                editor_id,
+            )
+        self.assertEqual(first["document"]["slug"], "document")
+        self.assertEqual(second["document"]["slug"], "document-copy")
+        self.assertNotEqual(first["document"]["slug"], second["document"]["slug"])
+
+    def test_update_document_with_empty_slug_keeps_existing_slug(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            created = db.create_document(
+                connection,
+                {"title": "Doc", "slug": "keep-me", "content_markdown": "one"},
+                editor_id,
+            )
+            document_id = created["document"]["id"]
+            updated = db.update_document(
+                connection,
+                document_id,
+                {"title": "Doc renamed", "slug": "", "content_markdown": "two"},
+                editor_id,
+            )
+        self.assertEqual(updated["document"]["slug"], "keep-me")
+        self.assertEqual(updated["document"]["title"], "Doc renamed")
+
     def test_text_comment_reanchors_after_document_update(self):
         with db.connect(self.db_path) as connection:
             editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
@@ -874,6 +930,99 @@ class BackendTests(unittest.TestCase):
                     db.import_document(connection, bad, editor_id, root)
 
 
+    # ── Taxonomy edit / delete ────────────────────────────────────────────────
+
+    def test_update_category_renames_and_missing_returns_none(self):
+        with db.connect(self.db_path) as connection:
+            category = db.create_category(connection, {"name": "Guides"})
+            updated = db.update_category(connection, category["id"], {"name": "Tutorials"})
+            self.assertEqual(updated["name"], "Tutorials")
+            self.assertIsNone(db.update_category(connection, 999999, {"name": "Nope"}))
+            with self.assertRaises(ValueError):
+                db.update_category(connection, category["id"], {"name": "   "})
+
+    def test_update_lesson_and_tag_rename(self):
+        with db.connect(self.db_path) as connection:
+            lesson = db.create_lesson(connection, {"name": "Lesson A"})
+            tag = db.create_tag(connection, {"name": "old-tag"})
+            self.assertEqual(db.update_lesson(connection, lesson["id"], {"name": "Lesson B"})["name"], "Lesson B")
+            self.assertEqual(db.update_tag(connection, tag["id"], {"name": "new-tag"})["name"], "new-tag")
+            self.assertIsNone(db.update_lesson(connection, 999999, {"name": "x"}))
+            self.assertIsNone(db.update_tag(connection, 999999, {"name": "x"}))
+
+    def test_delete_category_nulls_document_reference(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            category = db.create_category(connection, {"name": "Temp"})
+            created = db.create_document(
+                connection,
+                {"title": "Doc", "slug": "doc", "content_markdown": "", "category_id": category["id"]},
+                editor_id,
+            )
+            document_id = created["document"]["id"]
+            self.assertEqual(db.count_taxonomy_references(connection, "categories", category["id"]), 1)
+            self.assertTrue(db.delete_category(connection, category["id"]))
+            row = connection.execute("SELECT category_id FROM documents WHERE id = ?", (document_id,)).fetchone()
+            self.assertIsNone(row["category_id"])
+            self.assertIsNone(connection.execute("SELECT id FROM categories WHERE id = ?", (category["id"],)).fetchone())
+            self.assertFalse(db.delete_category(connection, category["id"]))
+
+    def test_delete_lesson_nulls_document_reference(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            lesson = db.create_lesson(connection, {"name": "Lesson X"})
+            created = db.create_document(
+                connection,
+                {"title": "Doc2", "slug": "doc2", "content_markdown": "", "lesson_id": lesson["id"]},
+                editor_id,
+            )
+            document_id = created["document"]["id"]
+            self.assertTrue(db.delete_lesson(connection, lesson["id"]))
+            row = connection.execute("SELECT lesson_id FROM documents WHERE id = ?", (document_id,)).fetchone()
+            self.assertIsNone(row["lesson_id"])
+            self.assertFalse(db.delete_lesson(connection, 999999))
+
+    def test_delete_tag_removes_document_and_term_joins(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            tag = db.create_tag(connection, {"name": "Shared"})
+            created = db.create_document(
+                connection,
+                {"title": "Doc3", "slug": "doc3", "content_markdown": "", "tag_ids": [tag["id"]]},
+                editor_id,
+            )
+            document_id = created["document"]["id"]
+            term = db.create_glossary_term(connection, {"term": "Widget", "tag_ids": [tag["id"]]}, editor_id)
+            # Document (1) + term (1) references.
+            self.assertEqual(db.count_taxonomy_references(connection, "tags", tag["id"]), 2)
+            self.assertTrue(db.delete_tag(connection, tag["id"]))
+            self.assertEqual(
+                connection.execute("SELECT COUNT(*) AS c FROM document_tags WHERE tag_id = ?", (tag["id"],)).fetchone()["c"],
+                0,
+            )
+            self.assertEqual(
+                connection.execute("SELECT COUNT(*) AS c FROM glossary_term_tags WHERE tag_id = ?", (tag["id"],)).fetchone()["c"],
+                0,
+            )
+            self.assertIsNone(connection.execute("SELECT id FROM tags WHERE id = ?", (tag["id"],)).fetchone())
+            # Document and term still exist; just untagged.
+            self.assertIsNotNone(db.get_document(connection, document_id))
+            self.assertIsNotNone(db.get_glossary_term(connection, term["id"]))
+            self.assertFalse(db.delete_tag(connection, tag["id"]))
+
+    def test_list_taxonomy_includes_usage_count(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            category = db.create_category(connection, {"name": "Counted"})
+            db.create_document(
+                connection,
+                {"title": "Doc4", "slug": "doc4", "content_markdown": "", "category_id": category["id"]},
+                editor_id,
+            )
+            match = next(item for item in db.list_categories(connection) if item["id"] == category["id"])
+            self.assertEqual(match["usage_count"], 1)
+
+
 class HttpApiTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -1493,6 +1642,28 @@ class HttpApiTests(unittest.TestCase):
         status, settings, _ = self.request("GET", "/api/settings", cookie=viewer_cookie)
         self.assertEqual(status, 200)
         self.assertEqual(settings.get("glossary_autolink"), "on")
+
+    def test_taxonomy_put_and_delete_endpoints(self):
+        cookie = self.login_cookie()
+        # Create a category, then rename it via PUT.
+        status, created, _ = self.request("POST", "/api/categories", {"name": "Endpoint Cat"}, cookie)
+        self.assertEqual(status, 201)
+        category_id = created["id"]
+        status, updated, _ = self.request("PUT", f"/api/categories/{category_id}", {"name": "Renamed Cat"}, cookie)
+        self.assertEqual(status, 200)
+        self.assertEqual(updated["name"], "Renamed Cat")
+        # Empty name -> 400.
+        status, _, _ = self.request("PUT", f"/api/categories/{category_id}", {"name": ""}, cookie)
+        self.assertEqual(status, 400)
+        # DELETE -> 204 (empty body).
+        status, payload, _ = self.request("DELETE", f"/api/categories/{category_id}", cookie=cookie)
+        self.assertEqual(status, 204)
+        self.assertIsNone(payload)
+        # Missing id -> 404 on both verbs.
+        status, _, _ = self.request("PUT", "/api/categories/999999", {"name": "X"}, cookie)
+        self.assertEqual(status, 404)
+        status, _, _ = self.request("DELETE", "/api/tags/999999", cookie=cookie)
+        self.assertEqual(status, 404)
 
 
 if __name__ == "__main__":

@@ -30,6 +30,10 @@ function renderSettingsDialog() {
   const orphanList = document.querySelector("#settings-orphan-list");
   if (orphanStatus) orphanStatus.textContent = "";
   if (orphanList) orphanList.replaceChildren();
+  // Taxonomy management — render from the already-loaded state.
+  const taxonomyStatus = document.querySelector("#settings-taxonomy-status");
+  if (taxonomyStatus) taxonomyStatus.textContent = "";
+  renderSettingsTaxonomy();
 }
 
 // ── Section 1: Appearance / Theme ────────────────────────────────────────────
@@ -272,6 +276,187 @@ async function purgeOrphanAttachments() {
     // API returns {"purged": N}
     const count = result?.purged ?? result?.deleted ?? result?.count ?? 0;
     if (statusEl) setStatus(statusEl, t("orphans_purged", { count }));
+  } catch (error) {
+    if (statusEl) setStatus(statusEl, readableError(error), true);
+  }
+}
+
+// ── Section 6: Manage taxonomy (rename / delete) ─────────────────────────────
+// Editors+ can rename or delete categories / lessons / tags. Deletes detach the
+// reference everywhere (documents.category_id / lesson_id set NULL; tag join rows
+// removed) so nothing is left dangling. Lists are sourced from the shared state
+// (state.categories / .lessons / .tags) which loadTaxonomy() keeps in sync.
+
+const TAXONOMY_LIST_IDS = {
+  categories: "#settings-taxonomy-categories",
+  lessons: "#settings-taxonomy-lessons",
+  tags: "#settings-taxonomy-tags",
+};
+
+function renderSettingsTaxonomy() {
+  if (!hasRoleAtLeast("editor")) return;
+  renderTaxonomyAdminList("categories", state.categories || []);
+  renderTaxonomyAdminList("lessons", state.lessons || []);
+  renderTaxonomyAdminList("tags", state.tags || []);
+}
+
+function renderTaxonomyAdminList(kind, items) {
+  const listEl = document.querySelector(TAXONOMY_LIST_IDS[kind]);
+  if (!listEl) return;
+  if (!items.length) {
+    const empty = document.createElement("li");
+    empty.className = "settings-taxonomy-empty list-meta";
+    empty.textContent = t("taxonomy_empty");
+    listEl.replaceChildren(empty);
+    return;
+  }
+  listEl.replaceChildren(
+    ...items.map((item) => {
+      const li = document.createElement("li");
+      li.className = "settings-taxonomy-item";
+      li.dataset.kind = kind;
+      li.dataset.id = String(item.id);
+
+      // Display row: name + usage count + Rename / Delete.
+      const display = document.createElement("div");
+      display.className = "settings-taxonomy-display";
+      const name = document.createElement("span");
+      name.className = "settings-taxonomy-name";
+      name.textContent = item.name || item.slug || String(item.id);
+      const meta = document.createElement("span");
+      meta.className = "list-meta";
+      meta.textContent = t("taxonomy_usage", { count: Number(item.usage_count || 0) });
+      const actions = document.createElement("div");
+      actions.className = "settings-taxonomy-actions";
+      const renameBtn = document.createElement("button");
+      renameBtn.type = "button";
+      renameBtn.dataset.action = "rename-taxonomy";
+      renameBtn.dataset.kind = kind;
+      renameBtn.dataset.id = String(item.id);
+      renameBtn.textContent = t("rename");
+      const deleteBtn = document.createElement("button");
+      deleteBtn.type = "button";
+      deleteBtn.className = "danger";
+      deleteBtn.dataset.action = "delete-taxonomy";
+      deleteBtn.dataset.kind = kind;
+      deleteBtn.dataset.id = String(item.id);
+      deleteBtn.dataset.usage = String(item.usage_count || 0);
+      deleteBtn.textContent = t("delete");
+      actions.append(renameBtn, deleteBtn);
+      display.append(name, meta, actions);
+
+      // Inline edit row (hidden until Rename is pressed).
+      const edit = document.createElement("div");
+      edit.className = "settings-taxonomy-edit";
+      edit.hidden = true;
+      const input = document.createElement("input");
+      input.type = "text";
+      input.className = "settings-taxonomy-input";
+      input.value = item.name || "";
+      const saveBtn = document.createElement("button");
+      saveBtn.type = "button";
+      saveBtn.className = "primary";
+      saveBtn.dataset.action = "save-taxonomy-rename";
+      saveBtn.dataset.kind = kind;
+      saveBtn.dataset.id = String(item.id);
+      saveBtn.textContent = t("save");
+      const cancelBtn = document.createElement("button");
+      cancelBtn.type = "button";
+      cancelBtn.dataset.action = "cancel-taxonomy-rename";
+      cancelBtn.dataset.kind = kind;
+      cancelBtn.dataset.id = String(item.id);
+      cancelBtn.textContent = t("cancel");
+      edit.append(input, saveBtn, cancelBtn);
+
+      li.append(display, edit);
+      return li;
+    }),
+  );
+  refreshIcons();
+}
+
+function findTaxonomyItemEl(kind, id) {
+  const listEl = document.querySelector(TAXONOMY_LIST_IDS[kind]);
+  if (!listEl) return null;
+  return listEl.querySelector(`.settings-taxonomy-item[data-id="${CSS.escape(String(id))}"]`);
+}
+
+async function loadTaxonomyAdmin() {
+  if (!hasRoleAtLeast("editor")) return;
+  const statusEl = document.querySelector("#settings-taxonomy-status");
+  if (statusEl) setStatus(statusEl, t("taxonomy_loading"));
+  try {
+    await loadTaxonomy();
+    renderSettingsTaxonomy();
+    if (statusEl) setStatus(statusEl, "");
+  } catch (error) {
+    if (statusEl) setStatus(statusEl, readableError(error), true);
+  }
+}
+
+function startTaxonomyRename(kind, id) {
+  const li = findTaxonomyItemEl(kind, id);
+  if (!li) return;
+  const display = li.querySelector(".settings-taxonomy-display");
+  const edit = li.querySelector(".settings-taxonomy-edit");
+  const input = li.querySelector(".settings-taxonomy-input");
+  if (display) display.hidden = true;
+  if (edit) edit.hidden = false;
+  if (input) {
+    input.focus();
+    input.select();
+  }
+}
+
+function cancelTaxonomyRename(kind, id) {
+  const li = findTaxonomyItemEl(kind, id);
+  if (!li) return;
+  const display = li.querySelector(".settings-taxonomy-display");
+  const edit = li.querySelector(".settings-taxonomy-edit");
+  const input = li.querySelector(".settings-taxonomy-input");
+  const original = (state[kind] || []).find((item) => String(item.id) === String(id));
+  if (input && original) input.value = original.name || "";
+  if (edit) edit.hidden = true;
+  if (display) display.hidden = false;
+}
+
+async function saveTaxonomyRename(kind, id) {
+  if (!hasRoleAtLeast("editor")) return;
+  const li = findTaxonomyItemEl(kind, id);
+  if (!li) return;
+  const input = li.querySelector(".settings-taxonomy-input");
+  const name = (input?.value || "").trim();
+  const statusEl = document.querySelector("#settings-taxonomy-status");
+  if (!name) {
+    if (statusEl) setStatus(statusEl, t("taxonomy_name_required"), true);
+    return;
+  }
+  if (statusEl) setStatus(statusEl, t("saving"));
+  try {
+    await request(`/api/${kind}/${encodeURIComponent(id)}`, {
+      method: "PUT",
+      body: JSON.stringify({ name }),
+    });
+    await loadTaxonomy(); // keep rail filters + metadata selects in sync
+    renderSettingsTaxonomy();
+    if (statusEl) setStatus(statusEl, "");
+  } catch (error) {
+    if (statusEl) setStatus(statusEl, readableError(error), true);
+  }
+}
+
+async function deleteTaxonomyItem(kind, id, usage) {
+  if (!hasRoleAtLeast("editor")) return;
+  const count = Number(usage || 0);
+  const confirmKey = kind === "tags" ? "delete_tag_confirm" : "delete_taxonomy_confirm";
+  if (!window.confirm(t(confirmKey, { count }))) return;
+  const statusEl = document.querySelector("#settings-taxonomy-status");
+  if (statusEl) setStatus(statusEl, t("taxonomy_deleting"));
+  try {
+    await request(`/api/${kind}/${encodeURIComponent(id)}`, { method: "DELETE" });
+    await loadTaxonomy(); // refresh rail filters + metadata selects
+    renderSettingsTaxonomy();
+    if (statusEl) setStatus(statusEl, "");
   } catch (error) {
     if (statusEl) setStatus(statusEl, readableError(error), true);
   }

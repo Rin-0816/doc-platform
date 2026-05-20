@@ -168,6 +168,27 @@
           <div id="settings-orphan-status" class="status-line" aria-live="polite"></div>
           <ol id="settings-orphan-list" class="settings-orphan-list"></ol>
         </section>
+
+        <!-- Section 6: Manage taxonomy — editor and above -->
+        <section class="settings-section" data-role-min="editor">
+          <h3 class="settings-section-title" data-i18n="manage_taxonomy">Manage taxonomy</h3>
+          <div class="settings-section-actions">
+            <button type="button" data-action="load-taxonomy-admin" data-i18n="refresh">Refresh</button>
+          </div>
+          <div id="settings-taxonomy-status" class="status-line" aria-live="polite"></div>
+          <div class="settings-taxonomy-group">
+            <h4 class="settings-taxonomy-title" data-i18n="categories">Categories</h4>
+            <ul id="settings-taxonomy-categories" class="settings-taxonomy-list"></ul>
+          </div>
+          <div class="settings-taxonomy-group">
+            <h4 class="settings-taxonomy-title" data-i18n="lessons">Lessons</h4>
+            <ul id="settings-taxonomy-lessons" class="settings-taxonomy-list"></ul>
+          </div>
+          <div class="settings-taxonomy-group">
+            <h4 class="settings-taxonomy-title" data-i18n="tags">Tags</h4>
+            <ul id="settings-taxonomy-tags" class="settings-taxonomy-list"></ul>
+          </div>
+        </section>
       </div>
     </dialog>
 
@@ -538,8 +559,8 @@
                 <input name="title" placeholder="Document title" data-i18n-placeholder="document_title_placeholder" required autocomplete="off">
                 <label class="editor-slug-field">
                   <span class="editor-slug-label" data-i18n="slug">URL name</span>
-                  <input name="slug" required autocomplete="off">
-                  <span class="field-help" data-i18n="slug_help">Use lowercase letters, numbers, and hyphens.</span>
+                  <input name="slug" autocomplete="off" data-i18n-placeholder="slug_auto_placeholder" placeholder="Auto-generated from the title">
+                  <span class="field-help" data-i18n="slug_help_auto">Leave blank to auto-generate from the title.</span>
                 </label>
               </div>
 
