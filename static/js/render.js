@@ -14,6 +14,7 @@ function renderMarkdown(target, markdown) {
     diagram.textContent = code.textContent;
     code.parentElement.replaceWith(diagram);
   });
+  highlightCodeBlocks(target);
   applyWikiLinks(target);
   if (window.mermaid) {
     mermaid.run({ nodes: target.querySelectorAll(".mermaid") }).catch(() => {});

@@ -465,6 +465,8 @@ function bindEvents() {
     renderGlossaryIndex();
   });
   elements.languageSelect.addEventListener("change", (event) => setLanguage(event.target.value));
+  // F8: editor/preview scroll sync — bind once here (no-op if elements missing)
+  bindEditorScrollSync();
   document.addEventListener("click", closeInsertMenuOnOutsideClick);
   document.addEventListener("click", closeAvatarMenuOnOutsideClick);
   document.addEventListener("click", closeRailFilterOnOutsideClick);

@@ -330,6 +330,42 @@ function insertMarkdownBlock(kind) {
   renderCreatorDraft();
 }
 
+// F8 — Editor/preview scroll sync (split mode only) ----------------------
+
+function bindEditorScrollSync() {
+  const textarea = elements.editorForm?.elements?.content_markdown;
+  const preview = elements.editorLivePreview;
+  if (!textarea || !preview) return;
+
+  // Attach once; guard flag prevents feedback loops
+  if (textarea.dataset.scrollSyncBound) return;
+  textarea.dataset.scrollSyncBound = "1";
+
+  let syncing = false;
+
+  textarea.addEventListener("scroll", function () {
+    if (state.previewMode !== "split") return;
+    if (syncing) return;
+    const scrollable = preview.scrollHeight - preview.clientHeight;
+    if (scrollable <= 0) return;
+    const ratio = textarea.scrollTop / Math.max(1, textarea.scrollHeight - textarea.clientHeight);
+    syncing = true;
+    preview.scrollTop = ratio * scrollable;
+    syncing = false;
+  });
+
+  preview.addEventListener("scroll", function () {
+    if (state.previewMode !== "split") return;
+    if (syncing) return;
+    const scrollable = textarea.scrollHeight - textarea.clientHeight;
+    if (scrollable <= 0) return;
+    const ratio = preview.scrollTop / Math.max(1, preview.scrollHeight - preview.clientHeight);
+    syncing = true;
+    textarea.scrollTop = ratio * scrollable;
+    syncing = false;
+  });
+}
+
 function setPreviewMode(mode) {
   if (!["split", "editor", "preview"].includes(mode)) return;
   state.previewMode = mode;

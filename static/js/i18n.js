@@ -20,7 +20,18 @@ function applyTranslations() {
     node.placeholder = t(node.dataset.i18nPlaceholder);
   });
   document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
-    node.setAttribute("aria-label", t(node.dataset.i18nAriaLabel));
+    const label = t(node.dataset.i18nAriaLabel);
+    node.setAttribute("aria-label", label);
+    // F9: set title for native tooltip on icon-only interactive elements.
+    // Limit to button/a/[role=tab] that have no visible text content.
+    const tag = node.tagName;
+    const role = node.getAttribute("role") || "";
+    if (tag === "BUTTON" || tag === "A" || role === "tab") {
+      const visibleText = (node.textContent || "").trim();
+      if (!visibleText) {
+        node.title = label;
+      }
+    }
   });
   refreshIcons();
 }
