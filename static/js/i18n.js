@@ -19,6 +19,9 @@ function applyTranslations() {
   document.querySelectorAll("[data-i18n-placeholder]").forEach((node) => {
     node.placeholder = t(node.dataset.i18nPlaceholder);
   });
+  document.querySelectorAll("[data-i18n-title]").forEach((node) => {
+    node.title = t(node.dataset.i18nTitle);
+  });
   document.querySelectorAll("[data-i18n-aria-label]").forEach((node) => {
     const label = t(node.dataset.i18nAriaLabel);
     node.setAttribute("aria-label", label);

@@ -132,6 +132,62 @@ function normalizeDiff(payload) {
   return payload?.diff || payload?.content || payload?.text || JSON.stringify(payload, null, 2);
 }
 
+// Render a GitHub-style side-by-side diff into `container`.
+// `rows` is the structured list from revision_diff / term_revision_diff_rows.
+// Line text is inserted via textContent only — never innerHTML — so it is XSS-safe.
+function renderSideBySideDiff(container, rows, leftLabel, rightLabel) {
+  if (!container) return;
+  container.replaceChildren();
+  container.classList.add("diff-sxs");
+
+  if (!Array.isArray(rows) || rows.length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "diff-sxs-empty";
+    empty.textContent = t("no_changes");
+    container.append(empty);
+    return;
+  }
+
+  const makeCell = (className, lineNo, text) => {
+    const cell = document.createElement("div");
+    cell.className = className;
+    const gutter = document.createElement("span");
+    gutter.className = "diff-sxs-gutter";
+    gutter.textContent = lineNo == null ? "" : String(lineNo);
+    const code = document.createElement("span");
+    code.className = "diff-sxs-code";
+    code.textContent = text == null ? "" : text;
+    cell.append(gutter, code);
+    return cell;
+  };
+
+  const header = document.createElement("div");
+  header.className = "diff-sxs-row diff-sxs-header";
+  const leftHead = document.createElement("div");
+  leftHead.className = "diff-sxs-col diff-sxs-headcell";
+  leftHead.textContent = leftLabel || "";
+  const rightHead = document.createElement("div");
+  rightHead.className = "diff-sxs-col diff-sxs-headcell";
+  rightHead.textContent = rightLabel || "";
+  header.append(leftHead, rightHead);
+  container.append(header);
+
+  const body = document.createDocumentFragment();
+  for (const row of rows) {
+    const line = document.createElement("div");
+    line.className = `diff-sxs-row diff-${row.type || "equal"}`;
+    // Left side: present unless this row is an insert.
+    const leftClass = row.type === "insert" ? "diff-sxs-col diff-sxs-empty-cell" : "diff-sxs-col diff-sxs-left";
+    const rightClass = row.type === "delete" ? "diff-sxs-col diff-sxs-empty-cell" : "diff-sxs-col diff-sxs-right";
+    line.append(
+      makeCell(leftClass, row.left_no, row.left),
+      makeCell(rightClass, row.right_no, row.right),
+    );
+    body.append(line);
+  }
+  container.append(body);
+}
+
 function normalizeDocument(item = {}) {
   return {
     ...item,

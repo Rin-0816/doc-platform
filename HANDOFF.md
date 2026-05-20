@@ -2,7 +2,7 @@
 
 ## 1. Project State
 
-`doc-platform` is a standard-Python, plugin-oriented internal documentation platform. The system runs on Python 3 stdlib HTTP server + SQLite, with a vanilla JS frontend (no build step). Implementation Phases 1-6 are complete; the application is feature-complete for the documented requirements.
+`doc-platform` is a standard-Python, plugin-oriented internal documentation platform. The system runs on Python 3 stdlib HTTP server + SQLite, with a vanilla JS frontend (no build step). Implementation Phases 1-10 are complete plus a UX-hardening session (see §9); the application is feature-complete for the documented requirements.
 
 ## 2. What Exists
 
@@ -106,7 +106,7 @@ python3 manage.py --database /tmp/doc-platform-check.sqlite3 check-plugins
 
 Latest results:
 
-- Backend tests: 43/43 pass (includes 10 new glossary tests added in Phase 6)
+- Backend tests: 61/61 pass (glossary, settings, backup, attachment, side-by-side diff, and per-document export/import tests added across Phases 6-10 and the UX-hardening session)
 - Plugin scaffold tests: 5/5 pass
 - JS syntax check: pass
 - Plugin frontend syntax check: pass
@@ -130,10 +130,11 @@ Read in this order when resuming:
 ## 6. Known Gaps
 
 - Real auth provider / search provider plugins (extension points documented, no working runtime sample beyond `ict_learning` shape)
-- Manual cross-browser verification on Firefox / Safari / Edge (Chrome desktop & mobile passed)
-- Backup automation and operational tooling
-- Frontend test framework (no JS unit tests; backend tests cover API contract)
+- Manual cross-browser verification on Firefox / Safari / Edge (Chrome desktop & mobile passed); the UX-hardening session changes (avatar anchor, comment markers, side-by-side diff, attachment/backup UIs) have NOT been visually verified in a browser — only code-reviewed and unit/syntax-tested
+- Scheduled/automated backups (manual DB backup/restore and per-document export/import exist, but no scheduling)
+- Frontend test framework (no JS unit tests; backend tests cover API contract — now 61 tests)
 - Categories / lessons / tags update + delete administration UI beyond create + quick-add
+- `app.css` and `app/db.py` are over the documented file-size budget and pending a split refactor
 
 ## 7. Known Technical Notes
 
@@ -162,6 +163,9 @@ Priority order:
 | 4 | Wiki polish | Hash routing, creator-mode glossary, term CRUD UI + API |
 | 5 | UI redesign | Notion-style tokens, dark mode, topbar (avatar + login modal), rail tree, ribbon tabs, polish (save state / empty state / shortcuts overlay) |
 | 6 | Glossary depth | Aliases, tags, revisions, rich term editor, Used-in panel, slug preview, smart delete, red-link create, Promote-to-term, glossary index, bulk import, auto-link toggle |
+| 9 | Admin & lifecycle | Settings screen, whole-DB backup/restore, attachment orphan cleanup, document delete |
+| 10 | Editor UX | Syntax highlighting for fenced code blocks, editor↔preview scroll sync, icon tooltips, dialog/panel/drawer animations (reduced-motion aware) |
+| Session (UX hardening) | Comment & history & per-doc backup | Avatar popover re-anchored (fixed mis-alignment); comment **position markers** on anchored text + click-to-focus; **inline comment editing** (replaces window.prompt); **side-by-side GitHub-style revision diff** (documents + terms); **per-attachment delete UI** + physical file removal on delete; **per-document backup/restore** (JSON export/import with attachment URL remapping); coding-rule/file-size budgets documented |
 
 ## 10. Decisions Recorded
 
@@ -175,6 +179,10 @@ Priority order:
 - Glossary auto-link: opt-in via `app_settings.glossary_autolink` (admin), default off
 - Visual direction: Notion-style (white background, single blue accent, thin dividers); dark theme via `[data-theme="dark"]`
 - Plugin migration files are write-once; `.claude/hooks/block_applied_migration_edit.py` enforces this in the dev environment
+- **No auto-save**: the editor uses explicit manual save with an unsaved-changes guard (in-app navigation + `beforeunload`); auto-save was deliberately rejected because the auto-saved copy and the live buffer appeared inconsistent to users
+- **Per-document backup** is editor-scoped JSON export/import (document + revisions + base64 attachments, with `/api/attachments/{id}` URL remapping on import); distinct from the admin whole-DB backup
+- **Side-by-side diff** is the standard history view; backend `revision_diff` returns aligned `rows` (difflib opcodes) alongside the legacy unified `diff` string
+- **File-size budgets** and CSS/backend split strategy are documented in `docs/specs/frontend-conventions.md`; `app.css` (~3200) and `app/db.py` (~1950) are flagged split candidates to address as dedicated refactors before further growth
 
 ## 11. URLs to Bookmark
 

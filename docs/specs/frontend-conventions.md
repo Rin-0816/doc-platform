@@ -67,6 +67,32 @@ Create a new feature file when a logical group of functions grows beyond ~600 li
 
 Add new `const`/`let` declarations to `globals.js` only. Never declare top-level variables in feature files.
 
+## File Size Budgets
+
+To keep files reviewable and prevent unbounded growth, each file type has a **soft budget**. Crossing it is not an error — it is a signal to split *before* adding more.
+
+| File type | Soft budget | Action when exceeded |
+|-----------|-------------|----------------------|
+| JS feature file (`static/js/*.js`) | ~600 lines | Extract a cohesive group of functions into a new feature file (see "When to create a new file"). |
+| `globals.js` (data only) | ~1000 lines | Split the `translations` map into a dedicated `i18n-strings.js` loaded before `globals.js`. |
+| `static/app.css` | ~2000 lines | Split into multiple stylesheets by concern (see "CSS Organization"). |
+| Python module (`app/*.py`) | ~1000 lines | Split by domain into a package or sibling modules (see "Backend"). |
+| `templates/index.html` | ~900 lines | Extract large dialog/panel markup into separate partials if a templating mechanism is introduced; until then, keep sections clearly comment-delimited. |
+
+**Currently over budget (split candidates, in priority order):** `static/app.css` (~3200), `app/db.py` (~1950), `static/js/editor.js` (~985), `static/js/globals.js` (~920). Prefer splitting one of these *before* adding substantial new code to it.
+
+The budget is about a single file's responsibility growing too broad — not a hard line count. A 1200-line file with one tight responsibility is healthier than two 600-line files with tangled dependencies. Split along seams that already exist, never to hit a number.
+
+## CSS Organization
+
+`static/app.css` is a single stylesheet (no build step). Keep it navigable:
+
+- Organize top-to-bottom as: **design tokens** (`:root`, `[data-theme="dark"]`) → **base/reset** → **layout** (shell, topbar, rails) → **components** (buttons, dialogs, drawers) → **feature blocks** (editor, viewer, glossary, comments, diff) → **animations/utilities**.
+- Mark each major section with a banner comment (`/* ===== Editor ===== */`) so sections are greppable.
+- Define colors only as CSS variables in the token blocks; never hard-code a hex value inside a feature rule. New theme-dependent colors get a `--token` in **both** `:root` and `[data-theme="dark"]`.
+
+**When `app.css` exceeds ~2000 lines**, split it into multiple stylesheets loaded with separate `<link>` tags in `index.html` (NOT `@import`, which serializes requests). A clean split is `tokens.css` (variables + base), `layout.css` (shell/topbar/rails), `components.css` (buttons/dialogs/drawers), and `features.css` (editor/viewer/glossary/comments/diff). Load order is tokens → layout → components → features so later files can rely on earlier variables.
+
 ## Naming Conventions
 
 - **Functions**: `camelCase`.
@@ -95,3 +121,15 @@ Add new `const`/`let` declarations to `globals.js` only. Never declare top-level
 
 - Do not touch `static/app.css` or backend Python files when working on frontend JavaScript.
 - The server is a Python stdlib HTTP server with no hot-reload; restart is required after backend changes.
+
+### Backend module organization
+
+- `app/db.py` is the data-access layer; `app/server.py` is the HTTP router (`handle_*` methods per resource). Keep HTTP/request parsing in `server.py` and SQL/data shaping in `db.py` — do not write SQL in the server or parse requests in the db layer.
+- Group related `db.py` functions by domain (documents, revisions, comments, attachments, glossary/terms, taxonomy, settings, plugins) and keep each domain's functions contiguous, in the order: read → create → update → delete → helpers.
+- **When `db.py` exceeds ~1000 lines** (it currently does, ~1950), promote it to a `db/` package and split by the domains above (`db/documents.py`, `db/glossary.py`, `db/attachments.py`, …) re-exported from `db/__init__.py`, OR split into sibling modules (`db_documents.py`, …). Keep the public function names stable so callers in `server.py` and tests don't change. Do this as a dedicated refactor with the test suite green before and after — not bundled into a feature change.
+- New endpoints: add a `handle_<resource>` method dispatched from the top-level router rather than growing one giant handler.
+
+### Migrations
+
+- Schema lives in `db.py` via `CREATE TABLE IF NOT EXISTS`; re-running `init-db` is the upgrade path.
+- Plugin migration files under `plugins/*/migrations/*.sql` are **write-once** (enforced by `.claude/hooks/block_applied_migration_edit.py`).

@@ -41,17 +41,16 @@
         <!-- Signed-OUT state: "Sign in" button opens modal -->
         <button type="button" class="topbar-signin" data-action="open-login" data-auth-hidden data-i18n="sign_in">Sign in</button>
 
-        <!-- Signed-IN state: avatar pill that toggles a popover -->
-        <button type="button" class="avatar-pill" data-action="toggle-avatar-menu" data-auth-only aria-haspopup="menu" aria-expanded="false">
-          <span class="avatar-initials" id="avatar-initials">?</span>
-          <span class="avatar-name" id="avatar-name"></span>
-          <i data-lucide="chevron-down" aria-hidden="true"></i>
-        </button>
-      </div>
-    </header>
+        <!-- Signed-IN state: avatar pill that toggles a popover anchored beneath it -->
+        <div class="avatar-anchor" data-auth-only>
+          <button type="button" class="avatar-pill" data-action="toggle-avatar-menu" aria-haspopup="menu" aria-expanded="false">
+            <span class="avatar-initials" id="avatar-initials">?</span>
+            <span class="avatar-name" id="avatar-name"></span>
+            <i data-lucide="chevron-down" aria-hidden="true"></i>
+          </button>
 
-    <!-- Avatar popover menu (sibling of header, inside .app-shell) -->
-    <div class="avatar-menu" id="avatar-menu" role="menu" hidden>
+          <!-- Avatar popover menu (anchored to the pill above) -->
+          <div class="avatar-menu" id="avatar-menu" role="menu" hidden>
       <div class="avatar-menu-header">
         <strong id="avatar-menu-name"></strong>
         <span class="muted" id="avatar-menu-role"></span>
@@ -80,7 +79,10 @@
       </button>
       <div class="avatar-menu-separator"></div>
       <button type="button" class="avatar-menu-item is-danger" role="menuitem" data-action="logout" data-i18n="sign_out">Sign out</button>
-    </div>
+          </div>
+        </div>
+      </div>
+    </header>
 
     <!-- Sign-in modal -->
     <dialog id="login-dialog" class="login-dialog">
@@ -491,7 +493,7 @@
                 </div>
               </div>
               <div id="term-diff-status" class="status-line"></div>
-              <pre id="term-diff-output" class="diff-output"></pre>
+              <div id="term-diff-output" class="diff-output"></div>
             </section>
           </div>
         </article>
@@ -512,6 +514,15 @@
                 <i data-lucide="pencil" aria-hidden="true"></i>
               </button>
               <span id="creator-save-state" class="creator-save-state"></span>
+              <button type="button" class="creator-doc-action" data-action="export-document" data-role-min="editor" id="creator-export-btn" data-i18n-title="export_document" title="Export document" hidden>
+                <i data-lucide="download" aria-hidden="true"></i>
+                <span data-i18n="export">Export</span>
+              </button>
+              <button type="button" class="creator-doc-action" data-action="import-document" data-role-min="editor" id="creator-import-btn" data-i18n-title="import_document" title="Import document" hidden>
+                <i data-lucide="upload" aria-hidden="true"></i>
+                <span data-i18n="import">Import</span>
+              </button>
+              <input type="file" id="creator-import-input" accept="application/json,.json" hidden>
               <button type="button" class="danger creator-delete-btn" data-action="delete-document" data-role-min="editor" data-i18n="delete_document" id="creator-delete-btn" hidden>Delete</button>
               <button class="primary" type="submit" form="editor-form" data-role-min="editor" data-i18n="save">Save</button>
             </div>
@@ -572,6 +583,13 @@
                       <input id="attachment-file" type="file" accept="image/*">
                       <button type="button" data-action="upload-image" data-role-min="editor" class="ribbon-cta" data-i18n="upload_and_insert">Upload and insert</button>
                       <div id="attachment-status" class="status-line" aria-live="polite"></div>
+                    </div>
+                  </div>
+                  <div class="ribbon-group" id="attachment-manager-group" data-role-min="editor">
+                    <div class="ribbon-group-label" data-i18n="attachments">Attachments</div>
+                    <div class="ribbon-group-body">
+                      <ul id="attachment-list" class="attachment-list" aria-live="polite"></ul>
+                      <p id="attachment-list-empty" class="muted attachment-list-empty" data-i18n="attachments_empty_hint">Save the document, then upload images to manage them here.</p>
                     </div>
                   </div>
                 </div>
@@ -711,7 +729,7 @@
                   </div>
                 </div>
                 <div id="diff-status" class="status-line" aria-live="polite"></div>
-                <pre id="diff-output" class="diff-output"></pre>
+                <div id="diff-output" class="diff-output"></div>
               </section>
             </div>
           </section>

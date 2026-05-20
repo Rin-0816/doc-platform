@@ -10,6 +10,21 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python .claude/hooks/check_js_syntax.py"
+          },
+          {
+            "type": "command",
+            "command": "python .claude/hooks/check_i18n_parity.py"
+          }
+        ]
+      }
     ]
   }
 }

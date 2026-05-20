@@ -46,6 +46,64 @@ class BackendTests(unittest.TestCase):
         self.assertEqual(restored["document"]["content_markdown"], "first")
         self.assertEqual(len(revisions), 3)
 
+    def test_revision_diff_returns_aligned_rows(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            # Original (against / left side).
+            created = db.create_document(
+                connection,
+                {"title": "Doc", "slug": "doc", "content_markdown": "alpha\nbeta\ngamma\nkeep"},
+                editor_id,
+            )
+            document_id = created["document"]["id"]
+            against_revision_id = created["revision_id"]
+            # New (target / right side): beta deleted, delta inserted, keep unchanged.
+            updated = db.update_document(
+                connection,
+                document_id,
+                {"title": "Doc", "slug": "doc", "content_markdown": "alpha\ngamma\nkeep\ndelta"},
+                editor_id,
+            )
+            target_revision_id = updated["revision_id"]
+            diff = db.revision_diff(connection, target_revision_id, against_revision_id)
+
+        # Existing string key must still be present for current callers/tests.
+        self.assertIn("diff", diff)
+        self.assertIsInstance(diff["diff"], str)
+        rows = diff["rows"]
+
+        # Row shape: every row carries the five expected keys.
+        for row in rows:
+            self.assertEqual(set(row), {"type", "left_no", "left", "right_no", "right"})
+
+        # equal: "alpha" appears on both sides at line 1.
+        equal_rows = [r for r in rows if r["type"] == "equal"]
+        self.assertTrue(any(r["left"] == "alpha" and r["right"] == "alpha" for r in equal_rows))
+        equal_alpha = next(r for r in equal_rows if r["left"] == "alpha")
+        self.assertEqual(equal_alpha["left_no"], 1)
+        self.assertEqual(equal_alpha["right_no"], 1)
+
+        # delete: "beta" is left-only with no right line.
+        delete_rows = [r for r in rows if r["type"] == "delete"]
+        self.assertTrue(any(r["left"] == "beta" and r["right"] is None and r["right_no"] is None for r in delete_rows))
+
+        # insert: "delta" is right-only with no left line.
+        insert_rows = [r for r in rows if r["type"] == "insert"]
+        self.assertTrue(any(r["right"] == "delta" and r["left"] is None and r["left_no"] is None for r in insert_rows))
+
+        # replace: a same-row swap pairs left and right text.
+        replace_rows = db.build_diff_rows("gamma", "GAMMA")
+        self.assertTrue(any(r["type"] == "replace" and r["left"] == "gamma" and r["right"] == "GAMMA" for r in replace_rows))
+
+    def test_revision_diff_replace_pads_shorter_side(self):
+        """A replace where the new side has more lines pads the left with None rows."""
+        rows = db.build_diff_rows("one\ntwo", "ONE\nTWO\nTHREE")
+        replace_rows = [r for r in rows if r["type"] == "replace"]
+        # Two source lines map to three target lines: third replace row is right-only.
+        right_only = [r for r in replace_rows if r["left"] is None and r["right"] is not None]
+        self.assertTrue(right_only)
+        self.assertEqual(right_only[-1]["right"], "THREE")
+
     def test_plugin_compatibility_reads_manifest(self):
         with db.connect(self.db_path) as connection:
             sync_plugins(connection, ROOT / "plugins")
@@ -589,6 +647,39 @@ class BackendTests(unittest.TestCase):
             self.assertTrue(any(o["id"] == attachment_id for o in orphans_after),
                             "Attachment should be orphan when not referenced in any doc")
 
+    def test_list_document_attachments_excludes_deleted(self):
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            created = db.create_document(
+                connection,
+                {"title": "Doc", "slug": "doc-att-list", "content_markdown": ""},
+                editor_id,
+            )
+            document_id = created["document"]["id"]
+            other = db.create_document(
+                connection,
+                {"title": "Other", "slug": "other-att-list", "content_markdown": ""},
+                editor_id,
+            )
+            other_id = other["document"]["id"]
+
+            keep = db.create_attachment(connection, document_id, "keep.png", "data/attachments/keep.png", "image/png", 100, editor_id)
+            gone = db.create_attachment(connection, document_id, "gone.png", "data/attachments/gone.png", "image/png", 200, editor_id)
+            db.create_attachment(connection, other_id, "elsewhere.png", "data/attachments/elsewhere.png", "image/png", 300, editor_id)
+
+            # Soft-delete one of this document's attachments.
+            self.assertTrue(db.delete_attachment(connection, gone["id"]))
+
+            items = db.list_document_attachments(connection, document_id)
+
+        ids = [item["id"] for item in items]
+        self.assertIn(keep["id"], ids)
+        self.assertNotIn(gone["id"], ids, "Deleted attachment must be excluded")
+        # Only this document's (non-deleted) attachments are returned.
+        self.assertEqual(ids, [keep["id"]])
+        self.assertEqual(items[0]["url"], f"/api/attachments/{keep['id']}")
+        self.assertEqual(items[0]["file_name"], "keep.png")
+
     def test_create_and_list_backup(self):
         backups_dir = Path(self.tempdir.name) / "backups"
         entry = db.create_backup(self.db_path, backups_dir)
@@ -615,6 +706,172 @@ class BackendTests(unittest.TestCase):
             with self.assertRaises((ValueError, FileNotFoundError),
                                    msg=f"Expected error for name={name!r}"):
                 db.restore_backup(self.db_path, backups_dir, name)
+
+    # ── Per-document export / import ──────────────────────────────────────────
+
+    def _seed_document_with_attachment(self, connection, root, editor_id):
+        """Create a document with taxonomy, two revisions, and one image attachment.
+
+        Returns (document_id, attachment) where the document body references the
+        attachment by its /api/attachments/{id} URL.
+        """
+        attachments_dir = root / "data" / "attachments"
+        attachments_dir.mkdir(parents=True, exist_ok=True)
+        (attachments_dir / "pic.png").write_bytes(b"\x89PNG\r\n\x1a\nIMAGEDATA")
+
+        category = db.create_category(connection, {"name": "Guides"})
+        lesson = db.create_lesson(connection, {"name": "Lesson One"})
+        tag = db.create_tag(connection, {"name": "Howto"})
+        created = db.create_document(
+            connection,
+            {
+                "title": "Source Doc",
+                "slug": "source-doc",
+                "summary": "a summary",
+                "content_markdown": "v1 body",
+                "category_id": category["id"],
+                "lesson_id": lesson["id"],
+                "tag_ids": [tag["id"]],
+            },
+            editor_id,
+        )
+        document_id = created["document"]["id"]
+        attachment = db.create_attachment(
+            connection,
+            document_id=document_id,
+            file_name="pic.png",
+            storage_path="data/attachments/pic.png",
+            mime_type="image/png",
+            size_bytes=12,
+            user_id=editor_id,
+        )
+        # Second revision references the attachment by URL.
+        db.update_document(
+            connection,
+            document_id,
+            {
+                "title": "Source Doc",
+                "slug": "source-doc",
+                "summary": "a summary",
+                "content_markdown": f"v2 body ![pic](/api/attachments/{attachment['id']})",
+                "category_id": category["id"],
+                "lesson_id": lesson["id"],
+                "tag_ids": [tag["id"]],
+            },
+            editor_id,
+        )
+        return document_id, attachment
+
+    def test_export_document_returns_envelope_with_base64_and_names(self):
+        root = Path(self.tempdir.name)
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            document_id, attachment = self._seed_document_with_attachment(connection, root, editor_id)
+            envelope = db.export_document(connection, document_id, root)
+
+        self.assertEqual(envelope["doc_platform_export"], db.EXPORT_FORMAT_VERSION)
+        self.assertIn("exported_at", envelope)
+        # Taxonomy resolved to NAMES (portable).
+        self.assertEqual(envelope["document"]["category_name"], "Guides")
+        self.assertEqual(envelope["document"]["lesson_name"], "Lesson One")
+        self.assertEqual(envelope["document"]["tag_names"], ["Howto"])
+        # Revisions present chronologically.
+        versions = [rev["version_number"] for rev in envelope["revisions"]]
+        self.assertEqual(versions, sorted(versions))
+        # Attachment carries its original id and base64 file data.
+        self.assertEqual(len(envelope["attachments"]), 1)
+        exported = envelope["attachments"][0]
+        self.assertEqual(exported["id"], attachment["id"])
+        import base64
+        self.assertEqual(base64.b64decode(exported["data_base64"]), b"\x89PNG\r\n\x1a\nIMAGEDATA")
+
+        # export_document returns None for an unknown document.
+        with db.connect(self.db_path) as connection:
+            self.assertIsNone(db.export_document(connection, 999999, root))
+
+    def test_import_document_creates_new_doc_remaps_urls_and_unique_slug(self):
+        root = Path(self.tempdir.name)
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            source_id, source_attachment = self._seed_document_with_attachment(connection, root, editor_id)
+            envelope = db.export_document(connection, source_id, root)
+
+            # Import into the SAME instance — slug "source-doc" already exists.
+            result = db.import_document(connection, envelope, editor_id, root)
+            new_doc = result["document"]
+
+            self.assertNotEqual(new_doc["id"], source_id)
+            # Unique slug derived on collision.
+            self.assertEqual(new_doc["slug"], "source-doc-copy")
+            # Taxonomy resolved by name to the EXISTING rows (not duplicated).
+            self.assertEqual(new_doc["category"]["name"], "Guides")
+            self.assertEqual(new_doc["lesson"]["name"], "Lesson One")
+            self.assertEqual([t["name"] for t in new_doc["tags"]], ["Howto"])
+            self.assertEqual(
+                connection.execute("SELECT COUNT(*) AS c FROM categories WHERE name = 'Guides'").fetchone()["c"],
+                1,
+            )
+
+            # A NEW attachment was created with a different id.
+            new_attachments = db.list_document_attachments(connection, new_doc["id"])
+            self.assertEqual(len(new_attachments), 1)
+            new_attachment_id = new_attachments[0]["id"]
+            self.assertNotEqual(new_attachment_id, source_attachment["id"])
+
+            # URL remapped in the latest content.
+            self.assertIn(f"/api/attachments/{new_attachment_id}", new_doc["content_markdown"])
+            self.assertNotIn(f"/api/attachments/{source_attachment['id']}", new_doc["content_markdown"])
+
+            # URL remapped in the historical revisions too.
+            new_revisions = db.list_revisions(connection, new_doc["id"])
+            joined = "\n".join(rev["content_markdown"] for rev in new_revisions)
+            self.assertNotIn(f"/api/attachments/{source_attachment['id']}", joined)
+            self.assertIn(f"/api/attachments/{new_attachment_id}", joined)
+
+            # Importing a second time derives the next unique slug.
+            again = db.import_document(connection, envelope, editor_id, root)
+            self.assertEqual(again["document"]["slug"], "source-doc-copy-2")
+
+    def test_import_document_skips_non_image_attachments(self):
+        root = Path(self.tempdir.name)
+        import base64
+        envelope = {
+            "doc_platform_export": db.EXPORT_FORMAT_VERSION,
+            "exported_at": "2026-01-01T00:00:00Z",
+            "document": {
+                "title": "PDF Holder",
+                "slug": "pdf-holder",
+                "summary": "",
+                "content_markdown": "body",
+                "category_name": None,
+                "lesson_name": None,
+                "tag_names": [],
+                "plugin_data": {},
+            },
+            "revisions": [],
+            "attachments": [
+                {
+                    "id": 5,
+                    "file_name": "manual.pdf",
+                    "mime_type": "application/pdf",
+                    "size_bytes": 3,
+                    "data_base64": base64.b64encode(b"PDF").decode("ascii"),
+                }
+            ],
+        }
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            result = db.import_document(connection, envelope, editor_id, root)
+            self.assertEqual(result["skipped_attachments"], ["manual.pdf"])
+            self.assertEqual(len(db.list_document_attachments(connection, result["document"]["id"])), 0)
+
+    def test_import_document_rejects_malformed_envelope(self):
+        root = Path(self.tempdir.name)
+        with db.connect(self.db_path) as connection:
+            editor_id = connection.execute("SELECT id FROM users WHERE username = 'editor'").fetchone()["id"]
+            for bad in ({}, {"doc_platform_export": 999}, {"doc_platform_export": 1}, "not a dict"):
+                with self.assertRaises(ValueError):
+                    db.import_document(connection, bad, editor_id, root)
 
 
 class HttpApiTests(unittest.TestCase):
@@ -683,6 +940,34 @@ class HttpApiTests(unittest.TestCase):
         status, payload, _ = self.request("GET", "/api/search?q=Networking&type=document", cookie=cookie)
         self.assertEqual(status, 200)
         self.assertEqual(payload["total"], 1)
+
+    def test_document_export_import_endpoints(self):
+        cookie = self.login_cookie()
+        status, created, _ = self.request(
+            "POST",
+            "/api/documents",
+            {"title": "Portable Article", "slug": "portable-article", "content_markdown": "hello world"},
+            cookie,
+        )
+        self.assertEqual(status, 201)
+        document_id = created["document"]["id"]
+
+        # Export returns a well-formed envelope.
+        status, envelope, _ = self.request("GET", f"/api/documents/{document_id}/export", cookie=cookie)
+        self.assertEqual(status, 200)
+        self.assertEqual(envelope["doc_platform_export"], 1)
+        self.assertEqual(envelope["document"]["title"], "Portable Article")
+
+        # Import creates a NEW document (unique slug derived on collision).
+        status, result, _ = self.request("POST", "/api/documents/import", envelope, cookie)
+        self.assertEqual(status, 201)
+        self.assertNotEqual(result["document"]["id"], document_id)
+        self.assertEqual(result["document"]["slug"], "portable-article-copy")
+
+        # Malformed envelope is rejected with 400.
+        status, error, _ = self.request("POST", "/api/documents/import", {"nope": True}, cookie)
+        self.assertEqual(status, 400)
+        self.assertEqual(error["error"]["code"], "validation_error")
 
     def test_taxonomy_api_connects_document_metadata(self):
         cookie = self.login_cookie()
@@ -793,6 +1078,81 @@ class HttpApiTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertEqual(headers["Content-Type"], "image/png")
         self.assertEqual(payload, b"\x89PNG\r\n\x1a\n")
+
+    def _upload_attachment(self, cookie, document_id, filename="diagram.png"):
+        boundary = "----doc-platform-boundary"
+        body = (
+            f"--{boundary}\r\n"
+            f'Content-Disposition: form-data; name="file"; filename="{filename}"\r\n'
+            "Content-Type: image/png\r\n\r\n"
+        ).encode() + b"\x89PNG\r\n\x1a\n" + f"\r\n--{boundary}--\r\n".encode()
+        status, payload, _ = self.request_raw(
+            "POST",
+            f"/api/documents/{document_id}/attachments",
+            body=body,
+            headers={
+                "Accept": "application/json",
+                "Content-Type": f"multipart/form-data; boundary={boundary}",
+                "Content-Length": str(len(body)),
+            },
+            cookie=cookie,
+        )
+        self.assertEqual(status, 201)
+        return json.loads(payload)
+
+    def test_list_document_attachments_endpoint(self):
+        cookie = self.login_cookie()
+        status, created, _ = self.request(
+            "POST", "/api/documents", {"title": "Att List", "slug": "att-list-ep", "content_markdown": ""}, cookie
+        )
+        self.assertEqual(status, 201)
+        document_id = created["document"]["id"]
+
+        keep = self._upload_attachment(cookie, document_id, "keep.png")
+        gone = self._upload_attachment(cookie, document_id, "gone.png")
+
+        # Delete one; the listing must exclude it.
+        status, _, _ = self.request_raw("DELETE", f"/api/attachments/{gone['id']}", cookie=cookie)
+        self.assertEqual(status, 204)
+
+        status, payload, _ = self.request("GET", f"/api/documents/{document_id}/attachments", cookie=cookie)
+        self.assertEqual(status, 200)
+        ids = [item["id"] for item in payload["items"]]
+        self.assertIn(keep["id"], ids)
+        self.assertNotIn(gone["id"], ids)
+        self.assertEqual(payload["items"][0]["url"], f"/api/attachments/{keep['id']}")
+
+    def test_delete_attachment_removes_file_and_soft_deletes_row(self):
+        cookie = self.login_cookie()
+        status, created, _ = self.request(
+            "POST", "/api/documents", {"title": "Att Disk", "slug": "att-disk", "content_markdown": ""}, cookie
+        )
+        self.assertEqual(status, 201)
+        document_id = created["document"]["id"]
+
+        attachment = self._upload_attachment(cookie, document_id)
+
+        # The physical file exists on disk after upload.
+        with db.connect(self.db_path) as connection:
+            row = db.get_attachment(connection, attachment["id"])
+        file_path = ROOT / row["storage_path"]
+        self.assertTrue(file_path.exists(), "Uploaded file should exist on disk")
+
+        # Delete frees the file from disk.
+        status, _, _ = self.request_raw("DELETE", f"/api/attachments/{attachment['id']}", cookie=cookie)
+        self.assertEqual(status, 204)
+        self.assertFalse(file_path.exists(), "Deleting an attachment must remove its file from disk")
+
+        # The DB row is soft-deleted (kept, with deleted_at set) so comments stay intact.
+        with db.connect(self.db_path) as connection:
+            self.assertIsNone(db.get_attachment(connection, attachment["id"]))
+            soft = db.get_attachment(connection, attachment["id"], include_deleted=True)
+        self.assertIsNotNone(soft, "Soft-deleted row should still exist")
+        self.assertIsNotNone(soft["deleted_at"], "Row should be marked deleted_at")
+
+        # Deleting again (file already gone) must not error.
+        status, _, _ = self.request_raw("DELETE", f"/api/attachments/{attachment['id']}", cookie=cookie)
+        self.assertEqual(status, 404)
 
     def test_comment_update_requires_owner_or_admin(self):
         editor_cookie = self.login_cookie()

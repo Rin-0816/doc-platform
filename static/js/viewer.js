@@ -12,6 +12,7 @@ async function selectDocument(id, { skipHashUpdate = false, skipGuard = false } 
     state.editorSeed = structuredCloneSafe(state.selectedDocument);
     state.comments = [];
     state.commentDraftTarget = null;
+    state.editingCommentId = null;
     state.viewerContent = "document";
     state.editorDirty = false;
     state.editorSaving = false;
@@ -84,6 +85,7 @@ function renderDocumentDetail() {
   renderDocumentToc(elements.documentMarkdown);
   refreshCommentTargetOptions();
   updateCommentTargetControls();
+  renderCommentAnchors();
 }
 
 function renderDocumentRelatedTerms(documentItem) {

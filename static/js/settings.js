@@ -279,6 +279,75 @@ async function purgeOrphanAttachments() {
 
 // ── Document delete ──────────────────────────────────────────────────────────
 
+// ── Per-document backup / restore ─────────────────────────────────────────────
+// Distinct from the admin whole-database backup above. Lets an editor export a
+// single article to a .json file and import it back as a NEW document.
+
+async function exportDocument() {
+  if (!hasRoleAtLeast("editor")) return;
+  const doc = state.selectedDocument;
+  if (!doc?.id) return;
+  try {
+    const envelope = await request(`/api/documents/${encodeURIComponent(doc.id)}/export`);
+    const slug = String(doc.slug || envelope?.document?.slug || "document").replace(/[^a-z0-9._-]+/gi, "-");
+    const blob = new Blob([JSON.stringify(envelope, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${slug || "document"}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+    setStatus(elements.creatorSaveState, t("document_exported"));
+  } catch (error) {
+    window.alert(readableError(error));
+  }
+}
+
+function importDocument() {
+  if (!hasRoleAtLeast("editor")) return;
+  const input = document.querySelector("#creator-import-input");
+  if (!input) return;
+  input.value = "";
+  input.click();
+}
+
+async function handleImportFile(event) {
+  if (!hasRoleAtLeast("editor")) return;
+  const file = event.target.files?.[0];
+  if (!file) return;
+  setStatus(elements.creatorSaveState, t("importing_document"));
+  try {
+    const text = await file.text();
+    let envelope;
+    try {
+      envelope = JSON.parse(text);
+    } catch (parseError) {
+      throw new Error(t("import_invalid_file"));
+    }
+    const result = await request("/api/documents/import", {
+      method: "POST",
+      body: JSON.stringify(envelope),
+    });
+    const newId = result?.document?.id;
+    const skipped = result?.skipped_attachments?.length || 0;
+    if (newId) {
+      await loadDocuments(elements.searchInput.value.trim());
+      await selectDocument(newId);
+    }
+    setStatus(
+      elements.creatorSaveState,
+      skipped ? t("document_imported_skipped", { count: skipped }) : t("document_imported"),
+    );
+  } catch (error) {
+    window.alert(readableError(error));
+    setStatus(elements.creatorSaveState, "");
+  } finally {
+    event.target.value = "";
+  }
+}
+
 async function deleteDocument() {
   if (!hasRoleAtLeast("editor")) return;
   const doc = state.selectedDocument;

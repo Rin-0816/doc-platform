@@ -437,7 +437,7 @@ function renderTermRevisionList() {
     elements.termDiffAgainst.value = state.termRevisions[1].id;
   }
   if (elements.termDiffOutput) {
-    elements.termDiffOutput.textContent = "";
+    elements.termDiffOutput.replaceChildren();
   }
   if (state.termRevisions.length < 2) {
     setStatus(elements.termDiffStatus, t("need_two_term_revisions"));
@@ -466,13 +466,13 @@ async function loadTermDiff() {
   try {
     const payload = await request(`/api/glossary/revisions/diff?a=${encodeURIComponent(aId)}&b=${encodeURIComponent(bId)}`);
     if (elements.termDiffOutput) {
-      elements.termDiffOutput.textContent = Array.isArray(payload?.diff)
-        ? payload.diff.join("\n")
-        : (payload?.diff || "");
+      const leftLabel = `v${payload?.left_version ?? "?"}`;
+      const rightLabel = `v${payload?.right_version ?? "?"}`;
+      renderSideBySideDiff(elements.termDiffOutput, payload?.rows, leftLabel, rightLabel);
     }
     setStatus(elements.termDiffStatus, "");
   } catch (error) {
-    if (elements.termDiffOutput) elements.termDiffOutput.textContent = "";
+    if (elements.termDiffOutput) elements.termDiffOutput.replaceChildren();
     setStatus(elements.termDiffStatus, readableError(error), true);
   }
 }

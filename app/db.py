@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import base64
+import binascii
 import difflib
 import hashlib
 import json
 import os
 import re
+import secrets
 import shutil
 import sqlite3
 from contextlib import contextmanager
@@ -652,6 +655,68 @@ def get_revision(connection: sqlite3.Connection, revision_id: int) -> dict[str, 
     return serialize_revision(row) if row else None
 
 
+def build_diff_rows(against_text: str, target_text: str) -> list[dict[str, Any]]:
+    """Build aligned side-by-side diff rows.
+
+    ``against`` is the older (left) side, ``target`` is the newer (right) side.
+    Each row is {"type", "left_no", "left", "right_no", "right"} where line
+    numbers are 1-based and a side that has no line for that row is ``None``.
+    """
+    left_lines = against_text.splitlines()
+    right_lines = target_text.splitlines()
+    rows: list[dict[str, Any]] = []
+    matcher = difflib.SequenceMatcher(None, left_lines, right_lines, autojunk=False)
+    for tag, i1, i2, j1, j2 in matcher.get_opcodes():
+        if tag == "equal":
+            for offset in range(i2 - i1):
+                rows.append(
+                    {
+                        "type": "equal",
+                        "left_no": i1 + offset + 1,
+                        "left": left_lines[i1 + offset],
+                        "right_no": j1 + offset + 1,
+                        "right": right_lines[j1 + offset],
+                    }
+                )
+        elif tag == "delete":
+            for offset in range(i2 - i1):
+                rows.append(
+                    {
+                        "type": "delete",
+                        "left_no": i1 + offset + 1,
+                        "left": left_lines[i1 + offset],
+                        "right_no": None,
+                        "right": None,
+                    }
+                )
+        elif tag == "insert":
+            for offset in range(j2 - j1):
+                rows.append(
+                    {
+                        "type": "insert",
+                        "left_no": None,
+                        "left": None,
+                        "right_no": j1 + offset + 1,
+                        "right": right_lines[j1 + offset],
+                    }
+                )
+        elif tag == "replace":
+            span = max(i2 - i1, j2 - j1)
+            for offset in range(span):
+                has_left = offset < (i2 - i1)
+                has_right = offset < (j2 - j1)
+                rows.append(
+                    {
+                        "type": "replace",
+                        "left_no": (i1 + offset + 1) if has_left else None,
+                        "left": left_lines[i1 + offset] if has_left else None,
+                        "right_no": (j1 + offset + 1) if has_right else None,
+                        "right": right_lines[j1 + offset] if has_right else None,
+                    }
+                )
+    return rows
+
+
 def revision_diff(connection: sqlite3.Connection, revision_id: int, against_id: int) -> dict[str, Any] | None:
     target = get_revision(connection, revision_id)
     against = get_revision(connection, against_id)
@@ -666,7 +731,8 @@ def revision_diff(connection: sqlite3.Connection, revision_id: int, against_id: 
             lineterm="",
         )
     )
-    return {"target": target, "against": against, "diff": diff}
+    rows = build_diff_rows(against["content_markdown"], target["content_markdown"])
+    return {"target": target, "against": against, "diff": diff, "rows": rows}
 
 
 def restore_revision(connection: sqlite3.Connection, revision_id: int, user_id: int) -> dict[str, Any] | None:
@@ -1046,6 +1112,35 @@ def term_revision_diff(connection: sqlite3.Connection, revision_a_id: int, revis
     ))
 
 
+def term_revision_diff_rows(
+    connection: sqlite3.Connection, revision_a_id: int, revision_b_id: int
+) -> dict[str, Any] | None:
+    """Side-by-side diff payload for two glossary revisions.
+
+    ``a`` is the newer (right) version, ``b`` is the older (left) version, matching
+    the ordering used by the unified-diff endpoint. Returns the unified ``diff`` list
+    plus aligned ``rows`` and the two version labels, or ``None`` when missing.
+    """
+    rev_a = get_term_revision(connection, revision_a_id)
+    rev_b = get_term_revision(connection, revision_b_id)
+    if not rev_a or not rev_b:
+        return None
+    diff = list(difflib.unified_diff(
+        rev_b["description_markdown"].splitlines(),
+        rev_a["description_markdown"].splitlines(),
+        fromfile=f"v{rev_b['version_number']}",
+        tofile=f"v{rev_a['version_number']}",
+        lineterm="",
+    ))
+    rows = build_diff_rows(rev_b["description_markdown"], rev_a["description_markdown"])
+    return {
+        "diff": diff,
+        "rows": rows,
+        "left_version": rev_b["version_number"],
+        "right_version": rev_a["version_number"],
+    }
+
+
 WIKI_LINK_PATTERN = re.compile(r"\[\[([^\]|\n]+?)(?:\|[^\]\n]+)?\]\]")
 
 
@@ -1229,6 +1324,281 @@ def create_attachment(
     )
     connection.commit()
     return get_attachment(connection, cursor.lastrowid)  # type: ignore[arg-type]
+
+
+def list_document_attachments(connection: sqlite3.Connection, document_id: int) -> list[dict[str, Any]]:
+    """Return non-deleted attachments for a document, newest first, each with a serving url."""
+    rows = connection.execute(
+        """
+        SELECT id, file_name, mime_type, size_bytes, created_at
+        FROM attachments
+        WHERE document_id = ? AND deleted_at IS NULL
+        ORDER BY created_at DESC, id DESC
+        """,
+        (document_id,),
+    ).fetchall()
+    items: list[dict[str, Any]] = []
+    for row in rows:
+        item = dict(row)
+        item["url"] = f"/api/attachments/{item['id']}"
+        items.append(item)
+    return items
+
+
+# Per-document backup / restore -------------------------------------------------
+#
+# These are distinct from the admin whole-database backup. They produce a
+# portable JSON envelope for a SINGLE document: taxonomy is resolved to NAMES
+# (so it survives moving between instances) and image attachments are inlined
+# as base64. Importing always creates a NEW document.
+
+EXPORT_FORMAT_VERSION = 1
+
+
+def export_document(connection: sqlite3.Connection, document_id: int, root: Path) -> dict[str, Any] | None:
+    """Build a portable export envelope for a single document.
+
+    Returns ``None`` if the document does not exist (or is deleted). Taxonomy
+    is resolved to names; attachment files are read from disk and base64
+    encoded. Each attachment keeps its ORIGINAL id so the importer can rewrite
+    ``/api/attachments/{id}`` URLs in the body and revisions.
+    """
+    document = get_document(connection, document_id)
+    if not document:
+        return None
+
+    category = document.get("category") or {}
+    lesson = document.get("lesson") or {}
+
+    revisions = [
+        {
+            "version_number": revision["version_number"],
+            "summary": revision.get("summary", ""),
+            "content_markdown": revision.get("content_markdown", ""),
+            "created_at": revision.get("created_at"),
+        }
+        # Re-sort oldest-first for a chronological history in the envelope.
+        for revision in sorted(
+            list_revisions(connection, document_id),
+            key=lambda item: item["version_number"],
+        )
+    ]
+
+    attachments: list[dict[str, Any]] = []
+    rows = connection.execute(
+        """
+        SELECT id, file_name, storage_path, mime_type, size_bytes
+        FROM attachments
+        WHERE document_id = ? AND deleted_at IS NULL
+        ORDER BY id
+        """,
+        (document_id,),
+    ).fetchall()
+    for row in rows:
+        file_path = root / row["storage_path"]
+        try:
+            data = file_path.read_bytes()
+        except OSError:
+            # File missing on disk — skip it rather than abort the whole export.
+            continue
+        attachments.append(
+            {
+                "id": row["id"],
+                "file_name": row["file_name"],
+                "mime_type": row["mime_type"],
+                "size_bytes": row["size_bytes"],
+                "data_base64": base64.b64encode(data).decode("ascii"),
+            }
+        )
+
+    return {
+        "doc_platform_export": EXPORT_FORMAT_VERSION,
+        "exported_at": utc_now(),
+        "document": {
+            "title": document["title"],
+            "slug": document["slug"],
+            "summary": document.get("summary", ""),
+            "content_markdown": document.get("content_markdown", ""),
+            "category_name": category.get("name"),
+            "lesson_name": lesson.get("name"),
+            "tag_names": [tag["name"] for tag in document.get("tags", [])],
+            "plugin_data": document.get("plugin_data", {}),
+        },
+        "revisions": revisions,
+        "attachments": attachments,
+    }
+
+
+def _unique_document_slug(connection: sqlite3.Connection, base_slug: str) -> str:
+    """Return a slug that is unique among documents, deriving one on collision."""
+    base = normalize_slug(base_slug) or "document"
+
+    def taken(candidate: str) -> bool:
+        return bool(connection.execute("SELECT 1 FROM documents WHERE slug = ?", (candidate,)).fetchone())
+
+    if not taken(base):
+        return base
+    copy_base = f"{base}-copy"
+    if not taken(copy_base):
+        return copy_base
+    suffix = 2
+    while taken(f"{copy_base}-{suffix}"):
+        suffix += 1
+    return f"{copy_base}-{suffix}"
+
+
+def _resolve_taxonomy_id(connection: sqlite3.Connection, table: str, name: str | None, creator) -> int | None:
+    """Find a taxonomy row by name (case-insensitive), creating it if absent."""
+    cleaned = str(name or "").strip()
+    if not cleaned:
+        return None
+    row = connection.execute(
+        f"SELECT id FROM {table} WHERE name = ? COLLATE NOCASE",
+        (cleaned,),
+    ).fetchone()
+    if row:
+        return row["id"]
+    return creator(connection, {"name": cleaned})["id"]
+
+
+def _remap_attachment_urls(text: str, mapping: dict[int, int]) -> str:
+    """Rewrite every ``/api/attachments/{old}`` occurrence to its new id."""
+    if not text or not mapping:
+        return text or ""
+
+    def replace(match: "re.Match[str]") -> str:
+        old_id = int(match.group(1))
+        new_id = mapping.get(old_id)
+        return f"/api/attachments/{new_id}" if new_id is not None else match.group(0)
+
+    return re.sub(r"/api/attachments/(\d+)", replace, text)
+
+
+def import_document(
+    connection: sqlite3.Connection,
+    payload: dict[str, Any],
+    user_id: int,
+    root: Path,
+) -> dict[str, Any]:
+    """Create a NEW document from an export envelope.
+
+    Validates the envelope, derives a unique slug, resolves/creates taxonomy by
+    name, recreates image attachments (remapping their URLs), then creates the
+    document and appends historical revisions. Raises ``ValueError`` on a
+    malformed envelope.
+    """
+    if not isinstance(payload, dict) or payload.get("doc_platform_export") != EXPORT_FORMAT_VERSION:
+        raise ValueError("Unrecognized export file: missing or unsupported doc_platform_export version.")
+    document = payload.get("document")
+    if not isinstance(document, dict) or not str(document.get("title") or "").strip():
+        raise ValueError("Invalid export file: a document with a title is required.")
+
+    revisions = payload.get("revisions") or []
+    attachments = payload.get("attachments") or []
+    if not isinstance(revisions, list) or not isinstance(attachments, list):
+        raise ValueError("Invalid export file: revisions and attachments must be lists.")
+
+    # 1) Recreate attachments first so we can remap URLs before saving content.
+    storage_dir = root / "data" / "attachments"
+    storage_dir.mkdir(parents=True, exist_ok=True)
+    id_mapping: dict[int, int] = {}
+    skipped: list[str] = []
+    # We need the new document id to attach rows, but content remap needs ids
+    # first. Resolve by creating the document shell after attachments — so we
+    # stage attachment bytes now and create rows once the document exists.
+    staged: list[dict[str, Any]] = []
+    for entry in attachments:
+        if not isinstance(entry, dict):
+            skipped.append("(malformed attachment entry)")
+            continue
+        mime_type = str(entry.get("mime_type") or "")
+        file_name = str(entry.get("file_name") or "image")
+        if not mime_type.startswith("image/"):
+            skipped.append(file_name)
+            continue
+        try:
+            data = base64.b64decode(str(entry.get("data_base64") or ""), validate=True)
+        except (binascii.Error, ValueError):
+            skipped.append(file_name)
+            continue
+        if not data:
+            skipped.append(file_name)
+            continue
+        staged.append({"old_id": entry.get("id"), "file_name": file_name, "mime_type": mime_type, "data": data})
+
+    # 2) Create the document shell (unique slug, resolved taxonomy).
+    category_id = _resolve_taxonomy_id(connection, "categories", document.get("category_name"), create_category)
+    lesson_id = _resolve_taxonomy_id(connection, "lessons", document.get("lesson_name"), create_lesson)
+    tag_ids: list[int] = []
+    for tag_name in document.get("tag_names") or []:
+        tag_id = _resolve_taxonomy_id(connection, "tags", tag_name, create_tag)
+        if tag_id is not None:
+            tag_ids.append(tag_id)
+
+    slug = _unique_document_slug(connection, str(document.get("slug") or document.get("title")))
+    created = create_document(
+        connection,
+        {
+            "title": str(document["title"]),
+            "slug": slug,
+            "summary": str(document.get("summary") or ""),
+            "content_markdown": str(document.get("content_markdown") or ""),
+            "category_id": category_id,
+            "lesson_id": lesson_id,
+            "tag_ids": tag_ids,
+            "plugin_data": document.get("plugin_data") or {},
+        },
+        user_id,
+    )
+    document_id = created["document"]["id"]
+
+    # 3) Now that the document exists, write attachment files + rows.
+    for item in staged:
+        suffix = Path(item["file_name"]).suffix.lower()
+        storage_name = f"{secrets.token_urlsafe(18)}{suffix}"
+        storage_path = storage_dir / storage_name
+        storage_path.write_bytes(item["data"])
+        attachment = create_attachment(
+            connection,
+            document_id=document_id,
+            file_name=item["file_name"],
+            storage_path=str(storage_path.relative_to(root)),
+            mime_type=item["mime_type"],
+            size_bytes=len(item["data"]),
+            user_id=user_id,
+        )
+        old_id = item["old_id"]
+        if isinstance(old_id, int):
+            id_mapping[old_id] = attachment["id"]
+
+    # 4) Rewrite attachment URLs in the latest content and persist it.
+    remapped_content = _remap_attachment_urls(str(document.get("content_markdown") or ""), id_mapping)
+    connection.execute(
+        "UPDATE documents SET content_markdown = ? WHERE id = ?",
+        (remapped_content, document_id),
+    )
+    # The auto-created initial revision also carries the original content.
+    connection.execute(
+        "UPDATE revisions SET content_markdown = ? WHERE document_id = ?",
+        (remapped_content, document_id),
+    )
+
+    # 5) Append historical revisions (oldest-first), URL-remapped.
+    for revision in sorted(
+        (rev for rev in revisions if isinstance(rev, dict)),
+        key=lambda item: item.get("version_number") or 0,
+    ):
+        create_revision(
+            connection,
+            document_id,
+            _remap_attachment_urls(str(revision.get("content_markdown") or ""), id_mapping),
+            str(revision.get("summary") or ""),
+            user_id,
+        )
+
+    refresh_document_fts(connection, document_id)
+    connection.commit()
+    return {"document": get_document(connection, document_id), "skipped_attachments": skipped}
 
 
 def get_attachment(connection: sqlite3.Connection, attachment_id: int, include_deleted: bool = False) -> dict[str, Any] | None:

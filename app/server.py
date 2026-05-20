@@ -148,6 +148,15 @@ def build_handler(context: AppContext):
                 )
                 payload.update({"page": page, "page_size": page_size})
                 return self.json_response(payload)
+            if parts == ["import"] and method == "POST":
+                if not self.require_role(user, "editor"):
+                    return
+                payload = self.read_json()
+                try:
+                    result = db.import_document(connection, payload, user["id"], context.root)
+                except ValueError as exc:
+                    return self.json_error("validation_error", str(exc), HTTPStatus.BAD_REQUEST)
+                return self.json_response(result, HTTPStatus.CREATED)
             if not parts and method == "POST":
                 if not self.require_role(user, "editor"):
                     return
@@ -203,12 +212,15 @@ def build_handler(context: AppContext):
                 document_id = self.int_id(parts[0])
                 if document_id is None:
                     return
-                if method != "POST":
+                if method not in ("GET", "POST"):
                     return self.json_error("not_found", "Attachment endpoint not found.", HTTPStatus.NOT_FOUND)
                 if not self.require_role(user, "editor"):
                     return
                 if not db.get_document(connection, document_id):
                     return self.json_error("not_found", "Document not found.", HTTPStatus.NOT_FOUND)
+                if method == "GET":
+                    items = db.list_document_attachments(connection, document_id)
+                    return self.json_response({"items": items, "total": len(items)})
                 try:
                     upload = self.read_multipart_file()
                 except ValueError as exc:
@@ -235,6 +247,14 @@ def build_handler(context: AppContext):
                 )
                 attachment["url"] = f"/api/attachments/{attachment['id']}"
                 return self.json_response(attachment, HTTPStatus.CREATED)
+            if len(parts) == 2 and parts[1] == "export" and method == "GET":
+                document_id = self.int_id(parts[0])
+                if document_id is None:
+                    return
+                if not self.require_role(user, "editor"):
+                    return
+                envelope = db.export_document(connection, document_id, context.root)
+                return self.json_response(envelope) if envelope else self.json_error("not_found", "Document not found.", HTTPStatus.NOT_FOUND)
             if len(parts) == 2 and parts[1] == "revisions":
                 document_id = self.int_id(parts[0])
                 if document_id is None:
@@ -275,11 +295,17 @@ def build_handler(context: AppContext):
             if method == "DELETE":
                 if not self.require_role(user, "editor"):
                     return
-                return self.empty_response() if db.delete_attachment(connection, attachment_id) else self.json_error(
-                    "not_found",
-                    "Attachment not found.",
-                    HTTPStatus.NOT_FOUND,
-                )
+                if not db.delete_attachment(connection, attachment_id):
+                    return self.json_error("not_found", "Attachment not found.", HTTPStatus.NOT_FOUND)
+                # Free disk space: best-effort unlink of the physical file.
+                # The soft-deleted DB row is kept so dependent comments stay intact.
+                try:
+                    file_path = context.root / attachment["storage_path"]
+                    if file_path.exists():
+                        file_path.unlink()
+                except OSError:
+                    pass
+                return self.empty_response()
             return self.json_error("not_found", "Attachment endpoint not found.", HTTPStatus.NOT_FOUND)
 
         def handle_comments(self, method, parts, connection, user):
@@ -384,10 +410,10 @@ def build_handler(context: AppContext):
                 b_id = self.int_id(params.get("b", [""])[0])
                 if a_id is None or b_id is None:
                     return
-                diff_lines = db.term_revision_diff(connection, a_id, b_id)
-                if diff_lines is None:
+                diff_payload = db.term_revision_diff_rows(connection, a_id, b_id)
+                if diff_payload is None:
                     return self.json_error("not_found", "Revision not found.", HTTPStatus.NOT_FOUND)
-                return self.json_response({"diff": diff_lines})
+                return self.json_response(diff_payload)
             # GET /api/glossary/revisions/{rid}
             if len(parts) == 2 and parts[0] == "revisions" and method == "GET":
                 rid = self.int_id(parts[1])

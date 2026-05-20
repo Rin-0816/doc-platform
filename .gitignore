@@ -5,5 +5,11 @@ __pycache__/
 .codex/
 
 data/*.sqlite3
+data/*.db
+data/*.db-shm
+data/*.db-wal
 data/attachments/
 data/backups/
+
+# Playwright MCP artifacts
+.playwright-mcp/

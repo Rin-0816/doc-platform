@@ -191,18 +191,10 @@ function toggleAvatarMenu() {
 
 function openAvatarMenu() {
   state.avatarMenuOpen = true;
-  const menu = elements.avatarMenu;
-  if (menu) {
-    menu.hidden = false;
-    // Position the menu directly beneath the avatar pill
-    const pill = document.querySelector('[data-action="toggle-avatar-menu"]');
-    if (pill) {
-      const rect = pill.getBoundingClientRect();
-      menu.style.position = "fixed";
-      menu.style.top = `${rect.bottom + 6}px`;
-      menu.style.right = `${document.documentElement.clientWidth - rect.right}px`;
-      menu.style.left = "auto";
-    }
+  // The menu is anchored to the pill via CSS (.avatar-anchor positioning),
+  // so we only need to reveal it — no runtime coordinate math required.
+  if (elements.avatarMenu) {
+    elements.avatarMenu.hidden = false;
   }
   const pill = document.querySelector('[data-action="toggle-avatar-menu"]');
   if (pill) pill.setAttribute("aria-expanded", "true");

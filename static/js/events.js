@@ -1,6 +1,14 @@
 // events.js — handleClick, handleGlobalKeydown, bindEvents, outside-click closers.
 
 async function handleClick(event) {
+  // Comment anchor highlight/marker inside the rendered document body.
+  const commentAnchor = event.target.closest(".comment-anchor-marker, mark.comment-anchor");
+  if (commentAnchor) {
+    event.preventDefault();
+    focusCommentFromAnchor(commentAnchor.dataset.commentId);
+    return;
+  }
+
   const wikiLink = event.target.closest("a.wiki-link");
   if (wikiLink) {
     event.preventDefault();
@@ -331,6 +339,12 @@ async function handleClick(event) {
     case "delete-document":
       await deleteDocument();
       break;
+    case "export-document":
+      await exportDocument();
+      break;
+    case "import-document":
+      importDocument();
+      break;
     default:
       break;
   }
@@ -451,6 +465,8 @@ function bindEvents() {
   elements.loginForm.addEventListener("submit", login);
   // Bulk import form
   document.querySelector("#bulk-import-form")?.addEventListener("submit", submitBulkImport);
+  // Per-document import: file picker change handler
+  document.querySelector("#creator-import-input")?.addEventListener("change", handleImportFile);
   // Glossary index filter controls
   document.querySelector("#glossary-index-search")?.addEventListener("input", (event) => {
     state.glossaryIndexFilter.q = event.target.value;
@@ -470,6 +486,10 @@ function bindEvents() {
   document.addEventListener("click", closeInsertMenuOnOutsideClick);
   document.addEventListener("click", closeAvatarMenuOnOutsideClick);
   document.addEventListener("click", closeRailFilterOnOutsideClick);
+  // Close the avatar popover on resize so it never lingers in a stale position.
+  window.addEventListener("resize", () => {
+    if (state.avatarMenuOpen) closeAvatarMenu();
+  });
   document.addEventListener("keydown", handleGlobalKeydown);
   window.addEventListener("beforeunload", (event) => {
     if (state.editorDirty) {

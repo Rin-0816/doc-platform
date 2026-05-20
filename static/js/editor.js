@@ -494,6 +494,7 @@ async function uploadImageAttachment() {
     appendMarkdownImage(url, attachment.file_name || file.name);
     elements.attachmentFile.value = "";
     setStatus(elements.attachmentStatus, t("image_inserted"));
+    await refreshAttachmentManager();
   } catch (error) {
     setStatus(elements.attachmentStatus, readableError(error), true);
   }
@@ -501,13 +502,143 @@ async function uploadImageAttachment() {
 
 function updateAttachmentControls() {
   elements.attachmentUploadButton.disabled = !hasRoleAtLeast("editor") || !Boolean(state.selectedDocument?.id || state.editorSeed?.id);
+  refreshAttachmentManager();
+}
+
+function currentDocumentId() {
+  return state.selectedDocument?.id || state.editorSeed?.id || null;
+}
+
+function formatAttachmentSize(bytes) {
+  return Number.isFinite(bytes) && bytes > 0 ? Math.ceil(bytes / 1024) + " KB" : "";
+}
+
+async function refreshAttachmentManager() {
+  const group = elements.attachmentManagerGroup;
+  if (!group) {
+    return;
+  }
+  // Editor+ only management view; hide entirely for viewers.
+  if (!hasRoleAtLeast("editor")) {
+    group.hidden = true;
+    return;
+  }
+  group.hidden = false;
+  const documentId = currentDocumentId();
+  if (!documentId) {
+    // Brand-new unsaved document: no id yet, show a hint.
+    renderAttachmentList([], false);
+    return;
+  }
+  try {
+    const payload = await request(`/api/documents/${encodeURIComponent(documentId)}/attachments`);
+    const items = (payload?.items || []).map((item) => normalizeAttachment(item));
+    renderAttachmentList(items, true);
+  } catch (error) {
+    renderAttachmentList([], true);
+    setStatus(elements.attachmentStatus, readableError(error), true);
+  }
+}
+
+function renderAttachmentList(items, hasDocument) {
+  const list = elements.attachmentList;
+  const empty = elements.attachmentListEmpty;
+  if (!list || !empty) {
+    return;
+  }
+  list.replaceChildren();
+  if (!items.length) {
+    empty.hidden = false;
+    empty.textContent = hasDocument ? t("attachments_none") : t("attachments_empty_hint");
+    return;
+  }
+  empty.hidden = true;
+  items.forEach((attachment) => {
+    list.append(buildAttachmentRow(attachment));
+  });
+}
+
+function buildAttachmentRow(attachment) {
+  const url = attachmentUrl(attachment);
+  const fileName = attachment.file_name || String(attachment.id);
+
+  const row = document.createElement("li");
+  row.className = "attachment-item";
+
+  const thumb = document.createElement("img");
+  thumb.className = "attachment-thumb";
+  thumb.src = url;
+  thumb.alt = fileName; // attribute assignment is XSS-safe (no markup parsing)
+  thumb.loading = "lazy";
+  row.append(thumb);
+
+  const meta = document.createElement("div");
+  meta.className = "attachment-meta";
+
+  const name = document.createElement("span");
+  name.className = "attachment-name";
+  name.textContent = fileName; // textContent — never innerHTML for file names
+  meta.append(name);
+
+  const size = formatAttachmentSize(attachment.size_bytes);
+  if (size) {
+    const sizeEl = document.createElement("span");
+    sizeEl.className = "list-meta attachment-size";
+    sizeEl.textContent = size;
+    meta.append(sizeEl);
+  }
+  row.append(meta);
+
+  const deleteBtn = document.createElement("button");
+  deleteBtn.type = "button";
+  deleteBtn.className = "attachment-delete";
+  deleteBtn.textContent = t("delete_attachment");
+  deleteBtn.setAttribute("aria-label", t("delete_attachment_aria", { name: fileName }));
+  deleteBtn.addEventListener("click", () => {
+    deleteAttachment(attachment);
+  });
+  row.append(deleteBtn);
+
+  return row;
+}
+
+async function deleteAttachment(attachment) {
+  if (!hasRoleAtLeast("editor")) {
+    setStatus(elements.attachmentStatus, t("no_permission"), true);
+    return;
+  }
+  const url = attachmentUrl(attachment);
+  // Warn if the image is still referenced in the current editor content.
+  const content = elements.editorForm.elements.content_markdown.value || "";
+  const stillReferenced = Boolean(url) && content.includes(url);
+  const confirmMessage = stillReferenced
+    ? t("delete_attachment_in_use_confirm")
+    : t("delete_attachment_confirm");
+  if (!window.confirm(confirmMessage)) {
+    return;
+  }
+  try {
+    await request(`/api/attachments/${encodeURIComponent(attachment.id)}`, { method: "DELETE" });
+    setStatus(elements.attachmentStatus, t("attachment_deleted"));
+    await refreshAttachmentManager();
+  } catch (error) {
+    setStatus(elements.attachmentStatus, readableError(error), true);
+  }
 }
 
 function updateDeleteDocumentButton() {
+  const isEditor = hasRoleAtLeast("editor");
+  const hasSavedDoc = Boolean(state.selectedDocument?.id);
   const btn = document.querySelector("#creator-delete-btn");
-  if (!btn) return;
-  // Show only when editing an existing saved document as editor+
-  btn.hidden = !hasRoleAtLeast("editor") || !state.selectedDocument?.id;
+  if (btn) {
+    // Show only when editing an existing saved document as editor+
+    btn.hidden = !isEditor || !hasSavedDoc;
+  }
+  // Per-document backup: export needs an existing doc; import is editor+ always.
+  const exportBtn = document.querySelector("#creator-export-btn");
+  if (exportBtn) exportBtn.hidden = !isEditor || !hasSavedDoc;
+  const importBtn = document.querySelector("#creator-import-btn");
+  if (importBtn) importBtn.hidden = !isEditor;
 }
 
 function appendMarkdownImage(url, fileName) {
@@ -785,7 +916,7 @@ function renderRevisionList({ preserveSelection = false } = {}) {
       : state.revisions[1].id;
   }
   if (!preserveSelection) {
-    elements.diffOutput.textContent = "";
+    elements.diffOutput.replaceChildren();
   }
   setStatus(elements.diffStatus, state.revisions.length < 2 ? t("need_two_revisions") : "");
 }
@@ -810,10 +941,12 @@ async function loadDiff() {
     const payload = await request(
       `/api/revisions/${encodeURIComponent(revisionId)}/diff?against=${encodeURIComponent(againstId)}`,
     );
-    elements.diffOutput.textContent = normalizeDiff(payload);
+    const leftLabel = `v${payload?.against?.version_number ?? "?"}`;
+    const rightLabel = `v${payload?.target?.version_number ?? "?"}`;
+    renderSideBySideDiff(elements.diffOutput, payload?.rows, leftLabel, rightLabel);
     setStatus(elements.diffStatus, "");
   } catch (error) {
-    elements.diffOutput.textContent = "";
+    elements.diffOutput.replaceChildren();
     setStatus(elements.diffStatus, readableError(error), true);
   }
 }
