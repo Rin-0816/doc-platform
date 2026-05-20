@@ -123,8 +123,8 @@ async function logout() {
   state.categories = [];
   state.lessons = [];
   state.tags = [];
-  // Clear the hash so bookmarks don't immediately re-load on next login
-  suppressNextHashChange = true;
+  // Clear the hash so bookmarks don't immediately re-load on next login.
+  // replaceState does not fire hashchange, so no suppression is needed.
   history.replaceState(null, "", location.pathname);
   renderSession();
   renderDocumentList();

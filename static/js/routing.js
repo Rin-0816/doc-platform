@@ -20,7 +20,9 @@ function parseHashRoute() {
 }
 
 function updateHashRoute({ type, slug }, { replace = false } = {}) {
-  suppressNextHashChange = true;
+  // pushState/replaceState do NOT fire a hashchange event, so there is nothing
+  // to suppress here — the only hashchange events come from genuine browser
+  // back/forward navigation, which onHashChange must always handle.
   let hash = "#/" + type;
   if (slug) hash += "/" + encodeURIComponent(slug);
   if (replace) {
@@ -33,7 +35,7 @@ function updateHashRoute({ type, slug }, { replace = false } = {}) {
 async function applyHashRoute(route) {
   if (!route) return;
   if (route.type === "glossary") {
-    showGlossaryIndex();
+    showGlossaryIndex({ skipHashUpdate: true });
     return;
   }
   if (route.type === "doc") {
@@ -69,10 +71,7 @@ async function applyHashRoute(route) {
 }
 
 function onHashChange() {
-  if (suppressNextHashChange) {
-    suppressNextHashChange = false;
-    return;
-  }
+  // Fires only on real back/forward navigation between hash entries.
   applyHashRoute(parseHashRoute());
 }
 

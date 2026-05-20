@@ -766,7 +766,6 @@ const CORE_INSERT_BLOCKS = [
 
 let frontendPlugins = [];
 let frontendPluginTranslations = { en: {}, ja: {} };
-let suppressNextHashChange = false;
 let pendingHashRoute = null;
 const collapsedTreeGroups = new Set();
 const collapsedTreeSubgroups = new Set();

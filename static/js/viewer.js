@@ -275,14 +275,16 @@ function renderTermDetail() {
   );
 }
 
-function showGlossaryIndex() {
+function showGlossaryIndex({ skipHashUpdate = false } = {}) {
   state.viewerContent = "glossary";
   setAppMode("viewer");
   setMobileView("workspace");
   renderDocumentDetail();
   renderTermDetail();
   renderGlossaryIndex();
-  updateHashRoute({ type: "glossary", slug: "" });
+  if (!skipHashUpdate) {
+    updateHashRoute({ type: "glossary", slug: "" });
+  }
 }
 
 function renderGlossaryIndex() {
