@@ -29,12 +29,15 @@
   --code-com: #6b7280;
   --code-fn: #c4b5fd;
   /* Side-by-side diff — dark */
-  --diff-insert-bg: #122a1a;
-  --diff-insert-gutter: #14361f;
-  --diff-delete-bg: #2c1517;
-  --diff-delete-gutter: #3a181b;
-  --diff-replace-bg: #2e2710;
-  --diff-replace-gutter: #3a3013;
+  --diff-insert-bg: #0d3320;
+  --diff-insert-gutter: #11401f;
+  --diff-insert-accent: #2ea043;
+  --diff-delete-bg: #3a1417;
+  --diff-delete-gutter: #4a181b;
+  --diff-delete-accent: #f85149;
+  --diff-replace-bg: #3a2c08;
+  --diff-replace-gutter: #483708;
+  --diff-replace-accent: #d29922;
   --diff-empty-bg: #101317;
   --diff-gutter-text: #6b7280;
 }
@@ -115,10 +118,13 @@
   /* Side-by-side diff — light */
   --diff-insert-bg: #e6ffec;
   --diff-insert-gutter: #ccffd8;
+  --diff-insert-accent: #2da44e;
   --diff-delete-bg: #ffebe9;
   --diff-delete-gutter: #ffd7d5;
+  --diff-delete-accent: #cf222e;
   --diff-replace-bg: #fff8c5;
   --diff-replace-gutter: #fbefb0;
+  --diff-replace-accent: #bf8700;
   --diff-empty-bg: #f6f8fa;
   --diff-gutter-text: #9ca3af;
 }
@@ -271,6 +277,113 @@ h3 {
     "documents workspace" calc(100vh - 56px) /
     minmax(250px, 290px) minmax(640px, 1fr);
 }
+
+/* ── Collapsible side panels (desktop) ─────────────────────────────────────
+   Collapsing the LEFT document rail works in both viewer (3-col) and creator
+   (2-col): the documents column shrinks to 0 and the workspace reclaims it. */
+.app-shell[data-rail-collapsed="true"] {
+  grid-template:
+    "topbar topbar topbar" 56px
+    "documents workspace auxiliary" calc(100vh - 56px) /
+    0 minmax(480px, 1fr) minmax(300px, 350px);
+}
+
+.app-shell[data-app-mode="creator"][data-rail-collapsed="true"] {
+  grid-template:
+    "topbar topbar" 56px
+    "documents workspace" calc(100vh - 56px) /
+    0 minmax(640px, 1fr);
+}
+
+/* Collapsing the RIGHT auxiliary column only applies in VIEWER mode (creator
+   mode keeps its slide-over behavior, handled separately below). */
+.app-shell[data-aux-collapsed="true"]:not([data-app-mode="creator"]) {
+  grid-template:
+    "topbar topbar" 56px
+    "documents workspace" calc(100vh - 56px) /
+    minmax(250px, 290px) minmax(480px, 1fr);
+}
+
+.app-shell[data-rail-collapsed="true"][data-aux-collapsed="true"]:not([data-app-mode="creator"]) {
+  grid-template:
+    "topbar topbar" 56px
+    "documents workspace" calc(100vh - 56px) /
+    0 minmax(480px, 1fr);
+}
+
+.app-shell[data-rail-collapsed="true"] .document-rail {
+  display: none;
+}
+
+.app-shell[data-aux-collapsed="true"]:not([data-app-mode="creator"]) .auxiliary-panel {
+  display: none;
+}
+
+/* Edge re-open handles — hidden by default, revealed when collapsed. */
+.rail-reopen,
+.aux-reopen {
+  position: fixed;
+  z-index: 40;
+  top: 64px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 56px;
+  padding: 0;
+  border: 1px solid var(--line);
+  background: var(--surface-elevated);
+  color: var(--text-muted);
+  box-shadow: var(--shadow-sm);
+  opacity: 0.9;
+}
+.rail-reopen {
+  left: 0;
+  border-left: 0;
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+.aux-reopen {
+  right: 0;
+  border-right: 0;
+  border-radius: var(--radius-md) 0 0 var(--radius-md);
+}
+.rail-reopen:hover,
+.aux-reopen:hover {
+  color: var(--text);
+  background: var(--bg-subtle);
+  opacity: 1;
+}
+.rail-reopen svg,
+.aux-reopen svg {
+  width: 16px;
+  height: 16px;
+}
+
+.app-shell[data-rail-collapsed="true"] .rail-reopen {
+  display: inline-flex;
+}
+.app-shell[data-aux-collapsed="true"]:not([data-app-mode="creator"]) .aux-reopen {
+  display: inline-flex;
+}
+
+/* Rail heading collapse toggle button. */
+.rail-collapse-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-height: 32px;
+  padding: 0;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-muted);
+}
+.rail-collapse-button:hover {
+  background: var(--surface-muted);
+  color: var(--text);
+}
+.rail-collapse-button svg { width: 16px; height: 16px; }
 
 .app-shell[data-app-mode="creator"] .auxiliary-panel {
   position: fixed;
@@ -2225,8 +2338,11 @@ h3 {
   background: var(--diff-empty-bg);
 }
 
+/* A colored accent bar on the changed side makes insert/delete/replace
+   distinguishable even where the tinted backgrounds read as similar (esp. dark). */
 .diff-insert .diff-sxs-right {
   background: var(--diff-insert-bg);
+  box-shadow: inset 3px 0 0 var(--diff-insert-accent);
 }
 .diff-insert .diff-sxs-right .diff-sxs-gutter {
   background: var(--diff-insert-gutter);
@@ -2234,6 +2350,7 @@ h3 {
 
 .diff-delete .diff-sxs-left {
   background: var(--diff-delete-bg);
+  box-shadow: inset 3px 0 0 var(--diff-delete-accent);
 }
 .diff-delete .diff-sxs-left .diff-sxs-gutter {
   background: var(--diff-delete-gutter);
@@ -2242,6 +2359,7 @@ h3 {
 .diff-replace .diff-sxs-left,
 .diff-replace .diff-sxs-right {
   background: var(--diff-replace-bg);
+  box-shadow: inset 3px 0 0 var(--diff-replace-accent);
 }
 .diff-replace .diff-sxs-left .diff-sxs-gutter,
 .diff-replace .diff-sxs-right .diff-sxs-gutter {
@@ -2380,6 +2498,36 @@ h3 {
       minmax(230px, 270px) minmax(0, 1fr);
   }
 
+  /* At medium widths the auxiliary is a slide-over for BOTH modes, so the
+     aux-collapse column behavior does not apply: keep the 2-col layout and
+     hide the right edge handle. Rail collapse still applies (column → 0). */
+  .app-shell[data-rail-collapsed="true"],
+  .app-shell[data-app-mode="creator"][data-rail-collapsed="true"],
+  .app-shell[data-aux-collapsed="true"]:not([data-app-mode="creator"]),
+  .app-shell[data-rail-collapsed="true"][data-aux-collapsed="true"]:not([data-app-mode="creator"]) {
+    grid-template:
+      "topbar topbar" 56px
+      "documents workspace" calc(100vh - 56px) /
+      minmax(230px, 270px) minmax(0, 1fr);
+  }
+
+  .app-shell[data-rail-collapsed="true"],
+  .app-shell[data-app-mode="creator"][data-rail-collapsed="true"],
+  .app-shell[data-rail-collapsed="true"][data-aux-collapsed="true"]:not([data-app-mode="creator"]) {
+    grid-template:
+      "topbar topbar" 56px
+      "documents workspace" calc(100vh - 56px) /
+      0 minmax(0, 1fr);
+  }
+
+  .app-shell[data-aux-collapsed="true"]:not([data-app-mode="creator"]) .auxiliary-panel {
+    display: block;
+  }
+
+  .aux-reopen {
+    display: none !important;
+  }
+
   .auxiliary-panel {
     position: fixed;
     z-index: 10;
@@ -2506,6 +2654,21 @@ h3 {
   .app-shell[data-mobile-view="glossary"] .auxiliary-panel,
   .app-shell[data-mobile-view="plugins"] .auxiliary-panel {
     display: block;
+  }
+
+  /* On mobile the mobile-nav + slide-over manage panels: the desktop collapse
+     affordances must not interfere. Re-assert the mobile-view visibility even
+     when a panel is flagged collapsed, and hide all desktop-only handles. */
+  .app-shell[data-rail-collapsed="true"][data-mobile-view="documents"] .document-rail,
+  .app-shell[data-aux-collapsed="true"][data-mobile-view="glossary"] .auxiliary-panel,
+  .app-shell[data-aux-collapsed="true"][data-mobile-view="plugins"] .auxiliary-panel {
+    display: block;
+  }
+
+  .rail-reopen,
+  .aux-reopen,
+  .rail-collapse-button {
+    display: none !important;
   }
 
   .app-shell[data-app-mode="creator"] .mobile-nav [data-mobile-target="glossary"],
@@ -3313,6 +3476,15 @@ h3 {
   .app-shell[data-app-mode="creator"] .auxiliary-panel,
   .auxiliary-panel {
     transition: transform var(--transition-base);
+  }
+
+  /* Collapsible side panels — animate the grid column widths and edge handles */
+  .app-shell {
+    transition: grid-template-columns var(--transition-base);
+  }
+  .rail-reopen,
+  .aux-reopen {
+    transition: opacity var(--transition-fast), background var(--transition-fast), color var(--transition-fast);
   }
 
   /* Button hover/active micro-transition */

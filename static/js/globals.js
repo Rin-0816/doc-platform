@@ -27,6 +27,18 @@ function getStoredLanguage() {
     return null;
   }
 }
+
+// Collapsible side panels — persisted booleans, restored at boot.
+const RAIL_COLLAPSED_STORAGE_KEY = "doc-platform.railCollapsed";
+const AUX_COLLAPSED_STORAGE_KEY = "doc-platform.auxCollapsed";
+
+function getStoredBool(key) {
+  try {
+    return window.localStorage.getItem(key) === "true";
+  } catch (error) {
+    return false;
+  }
+}
 const translations = {
   en: {
     app_title: "Document Platform",
@@ -286,6 +298,10 @@ const translations = {
     own_tags: "Tags",
     related_tags: "Related tags",
     filter_documents: "Filter documents",
+    collapse_documents: "Collapse document list",
+    expand_documents: "Expand document list",
+    collapse_glossary: "Collapse glossary panel",
+    expand_glossary: "Expand glossary panel",
     document_tree: "Document tree",
     uncategorized: "Uncategorized",
     no_lesson: "No lesson",
@@ -634,6 +650,10 @@ const translations = {
     own_tags: "タグ",
     related_tags: "関連タグ",
     filter_documents: "文書を絞り込み",
+    collapse_documents: "文書一覧を畳む",
+    expand_documents: "文書一覧を開く",
+    collapse_glossary: "用語集を畳む",
+    expand_glossary: "用語集を開く",
     document_tree: "文書ツリー",
     uncategorized: "未分類",
     no_documents_in_filter: "条件に一致する文書はありません。",
@@ -814,6 +834,8 @@ const state = {
   language: getInitialLanguage(),
   avatarMenuOpen: false,
   railFilterOpen: false,
+  railCollapsed: getStoredBool(RAIL_COLLAPSED_STORAGE_KEY),
+  auxCollapsed: getStoredBool(AUX_COLLAPSED_STORAGE_KEY),
   theme: "light",
   editorDirty: false,
   editorSaving: false,

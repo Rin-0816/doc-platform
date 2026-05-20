@@ -136,6 +136,56 @@ function setMobileView(view) {
   });
 }
 
+// ── Collapsible side panels (desktop) ───────────────────────────────────────
+
+function setRailCollapsed(collapsed) {
+  const value = Boolean(collapsed);
+  state.railCollapsed = value;
+  elements.shell.dataset.railCollapsed = String(value);
+  try {
+    window.localStorage.setItem(RAIL_COLLAPSED_STORAGE_KEY, String(value));
+  } catch (_) {
+    // ignore storage failures
+  }
+  const toggle = document.querySelector('[data-action="toggle-rail"]');
+  if (toggle) {
+    toggle.setAttribute("aria-expanded", String(!value));
+    const label = value ? t("expand_documents") : t("collapse_documents");
+    toggle.setAttribute("aria-label", label);
+    toggle.setAttribute("title", label);
+  }
+  refreshIcons();
+}
+
+function setAuxCollapsed(collapsed) {
+  const value = Boolean(collapsed);
+  state.auxCollapsed = value;
+  elements.shell.dataset.auxCollapsed = String(value);
+  try {
+    window.localStorage.setItem(AUX_COLLAPSED_STORAGE_KEY, String(value));
+  } catch (_) {
+    // ignore storage failures
+  }
+  // In viewer mode the topbar toggle reflects the collapsed column state.
+  if (state.activeMode !== "creator") {
+    const toggle = document.querySelector('[data-action="toggle-aux"]');
+    if (toggle) toggle.setAttribute("aria-expanded", String(!value));
+  }
+  refreshIcons();
+}
+
+// toggle-aux branches by mode: creator → slide-over; viewer → column collapse.
+function toggleAuxiliary() {
+  if (state.activeMode === "creator") {
+    const open = elements.shell.dataset.auxOpen !== "true";
+    elements.shell.dataset.auxOpen = String(open);
+    const toggle = document.querySelector('[data-action="toggle-aux"]');
+    if (toggle) toggle.setAttribute("aria-expanded", String(open));
+  } else {
+    setAuxCollapsed(!state.auxCollapsed);
+  }
+}
+
 function setAuxPanel(panel) {
   if (panel === "plugins" && !hasRoleAtLeast("admin")) {
     panel = "glossary";

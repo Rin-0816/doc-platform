@@ -207,8 +207,11 @@ async function handleClick(event) {
     case "toggle-rail-filters":
       setRailFilterOpen(!state.railFilterOpen);
       break;
+    case "toggle-rail":
+      setRailCollapsed(!state.railCollapsed);
+      break;
     case "toggle-aux":
-      elements.shell.dataset.auxOpen = elements.shell.dataset.auxOpen !== "true";
+      toggleAuxiliary();
       break;
     case "insert-glossary-term-link": {
       const termName = button.dataset.termName || "";

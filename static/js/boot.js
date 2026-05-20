@@ -19,6 +19,9 @@ async function boot() {
   window.addEventListener("hashchange", onHashChange);
   elements.shell.dataset.mobileView = "documents";
   setCommentsOpen(false);
+  // Restore persisted collapsible side-panel state before mode is applied.
+  setRailCollapsed(state.railCollapsed);
+  setAuxCollapsed(state.auxCollapsed);
   setAppMode(state.activeMode);
   setCreatorView(state.activeCreatorView);
   setPreviewMode(state.previewMode);

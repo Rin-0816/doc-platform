@@ -34,7 +34,7 @@
         </button>
 
         <!-- Aux panel toggle (Reference) -->
-        <button type="button" class="topbar-icon-button" data-action="toggle-aux" aria-label="Reference panels" data-i18n-aria-label="reference_panels">
+        <button type="button" class="topbar-icon-button" data-action="toggle-aux" aria-label="Reference panels" data-i18n-aria-label="reference_panels" aria-expanded="false">
           <i data-lucide="panel-right" aria-hidden="true"></i>
         </button>
 
@@ -337,6 +337,9 @@
             <span class="rail-filter-dot" id="rail-filter-active-dot" hidden></span>
           </button>
           <span id="document-count" class="muted"></span>
+          <button type="button" class="rail-collapse-button" data-action="toggle-rail" aria-label="Collapse document list" data-i18n-aria-label="collapse_documents" aria-expanded="true">
+            <i data-lucide="chevrons-left" aria-hidden="true"></i>
+          </button>
         </div>
       </div>
 
@@ -826,6 +829,14 @@
       <button type="button" data-mobile-target="glossary" data-i18n="glossary">Glossary</button>
       <button type="button" data-mobile-target="plugins" data-role-min="admin" data-i18n="plugins">Plugins</button>
     </nav>
+
+    <!-- Edge re-open handles (desktop only) — shown when a panel is collapsed -->
+    <button type="button" class="rail-reopen" data-action="toggle-rail" aria-label="Expand document list" data-i18n-aria-label="expand_documents">
+      <i data-lucide="chevrons-right" aria-hidden="true"></i>
+    </button>
+    <button type="button" class="aux-reopen" data-action="toggle-aux" aria-label="Expand glossary panel" data-i18n-aria-label="expand_glossary">
+      <i data-lucide="chevrons-left" aria-hidden="true"></i>
+    </button>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/marked@15.0.7/marked.min.js"></script>
